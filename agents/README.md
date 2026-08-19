@@ -1,0 +1,101 @@
+# Claude Agents — ทีม Subagent ส่วนตัว
+
+ทีมผู้เชี่ยวชาญสำหรับ Claude Code ใช้ร่วมกัน**ทุกโปรเจกต์**ในเครื่อง
+
+> README นี้เป็น**เอกสารให้คนอ่าน** — Claude Code ไม่โหลดไฟล์นี้เข้า context
+> **กฎที่บังคับใช้จริง** (routing, กฎเหล็ก "แตะโค้ด = ต้องผ่าน lead", เกณฑ์เลือกโหมด) อยู่ใน [`../RULES.md`](../RULES.md) ที่เดียว — แก้กฎต้องแก้ที่นั่น
+
+## ตำแหน่งติดตั้ง
+
+Repo นี้ต้อง clone/วางไว้ที่ `~/.claude/agents/` (Windows: `C:\Users\<user>\.claude\agents\`)
+Claude Code อ่าน agent ระดับ user จากโฟลเดอร์นี้โดยตรง — วางแล้วใช้ได้เลยทุกโปรเจกต์ ไม่ต้องตั้งค่าเพิ่ม
+
+```
+git clone <repo-url> "$HOME/.claude/agents"
+```
+
+แก้ไฟล์ `.md` ตัวไหนก็ได้ — hot-reload ภายใน ~3 วินาที
+
+## ทีมมีใครบ้าง
+
+**Lead — คนลงมือแก้โค้ดจริง** (เลือกตาม tech stack ของโปรเจกต์)
+
+| Agent | Callsign | ทำอะไร | Model | สิทธิ์แก้โค้ด |
+|---|---|---|---|---|
+| `unity-expert` | Forge | Lead โปรเจกต์ Unity — gameplay, performance, editor tools, asset pipeline | opus (xhigh) | แก้ได้เต็ม |
+| `web-expert` | Nova | Lead โปรเจกต์เว็บ ทุกภาษา/framework — frontend, backend, API, database | opus (xhigh) | แก้ได้เต็ม |
+| `system-tester` | Sentinel | ออกแบบ+รัน test เว็บ (Vitest/Playwright) และเกม (Unity Test Framework), หา edge case | opus (high) | เฉพาะไฟล์ test |
+
+**ที่ปรึกษา — คิด/ออกแบบอย่างเดียว** ส่ง design ให้ lead ลงมือ ไม่แตะโค้ดเอง
+
+| Agent | Callsign | ทำอะไร | Model |
+|---|---|---|---|
+| `system-planner` | Atlas | แตกงานใหญ่เป็นเฟส วิเคราะห์ stack กำหนดว่า expert ตัวไหนรับส่วนไหน | fable (xhigh) |
+| `backend-architect` | Bedrock | โครงฝั่ง server + data layer ตั้งแต่เส้น API ขึ้นไป — service architecture, API contract, schema/index/query, migration, cache, queue, auth | opus (xhigh) |
+| `network-expert` | Pulse | transport/protocol/sync/latency บนสายระหว่างเครื่อง — TCP/UDP/WebSocket/HTTP, multiplayer netcode | opus (xhigh) |
+| `game-architect` | Blueprint | โครงสร้างระบบภายในเกมฝั่ง client — design pattern, data flow, save system, scene/state management | opus (xhigh) |
+| `uxui-expert` | Prism | UX/UI ทั้งเว็บและเกม — direction, layout, สี, ฟอนต์, motion, game HUD/menu | opus (high) |
+| `project-manager` | Compass | ตรวจ+รายงานอย่างเดียว — audit memory/index, drift Jira↔memory, status digest ข้ามโปรเจกต์, เสนอลำดับหยิบการ์ด | sonnet (high) |
+
+**ทีม 3D** — ทำงานใน Blender ผ่าน Blender MCP ตามลำดับ organic เริ่ม Clay / hard-surface เริ่ม Chisel
+
+| Agent | Callsign | ทำอะไร | Model |
+|---|---|---|---|
+| `3d-sculptor` | Clay | ปั้น organic/ตัวละคร high-poly, silhouette, anatomy, รายละเอียดผิว | opus (high) |
+| `3d-modeller` | Chisel | hard surface, retopo, topology, UV, LOD, optimize + export mesh | opus (high) |
+| `3d-rigger` | Marionette | bone, IK/FK, weight painting, skinning, shape keys, facial rig | opus (high) |
+| `3d-animator` | Motion | keyframe, walk/idle/attack cycle, action/NLA, bake + export animation | opus (high) |
+
+**การเลือก model** (ปรับ 2026-07-30 ตามความสามารถของ Claude 5 family):
+
+- **`fable` (xhigh) — Atlas ตัวเดียว** จุดที่วางแผนผิดแล้วพังทั้งงาน และถูกเรียกครั้งเดียวต่องานใหญ่ ต้นทุนรวมเลยต่ำ
+- **`opus` (xhigh) — lead ที่แก้โค้ดจริง (Forge, Nova) + ที่ปรึกษาสถาปัตย์ (Bedrock, Blueprint, Pulse)** Opus 5 เก่งสุดตรงงาน agentic coding หลายไฟล์ และ `xhigh` คือ effort ที่แนะนำสำหรับงาน coding/agentic โดยเฉพาะ · ที่ปรึกษาสถาปัตย์ลงมาจาก fable เพราะงานคือออกแบบรอบเดียวส่งต่อ ไม่ใช่ long-horizon ที่ Fable ได้เปรียบจริง
+- **`opus` (high) — Prism, Sentinel + ทีม 3D ทั้ง 4** งานตัดสิน taste / หา bug / คุม Blender ผ่าน MCP ที่มี approval gate อยู่แล้ว — `high` คุ้มกว่าไม่ต้องดัน xhigh
+- **`sonnet` (high) — Compass** งานตรวจตามเกณฑ์ที่เขียนไว้ชัด + อ่านไฟล์ memory ข้ามโปรเจกต์เยอะ (input token หนัก) Sonnet 5 ถูกกว่าและพอ
+
+alias `fable`/`opus`/`sonnet` ชี้รุ่นล่าสุดของแต่ละ tier เสมอ (ตอนนี้ = Fable 5 / Opus 5 / Sonnet 5) ออกรุ่นใหม่ไม่ต้องไล่แก้ไฟล์ · **เปลี่ยน tier ของใครต้องบอก user ก่อน ห้ามปรับเงียบๆ**
+
+## กติกาหลัก: Lead-by-Stack
+
+- **พระเอกคือ lead ที่ตรงกับ stack ของโปรเจกต์** — ที่ปรึกษาออกแบบแล้วส่งต่อ ไม่ลงมือเอง
+- **orchestrator ห้ามแก้โค้ดโปรเจกต์เอง** ต้อง spawn lead เสมอ (แก้เองได้เฉพาะไฟล์ memory + config ของทีม agent)
+- ทุก agent ขึ้นต้นรายงานด้วยบรรทัด `💭 ชื่อ: กำลังคิดอะไร` และ orchestrator ต้อง relay บรรทัดนี้ให้ user เห็นเสมอ
+- ตาราง routing เต็ม (บริบทงาน → ใครคิด ใครทำ) อยู่ใน [`../RULES.md`](../RULES.md)
+
+## โหมดการเรียกใช้: Subagent vs Agent Team
+
+|  | **Subagent** (default) | **Agent Team** |
+|---|---|---|
+| ทำงานยังไง | orchestrator spawn agent ไปทำงานย่อย → รับผลกลับมารวมเอง | teammates เป็น session เต็มตัว มี shared task list |
+| agent คุยกันเอง | ไม่ได้ — สื่อสารผ่าน orchestrator เท่านั้น | ได้ เถียง/ต่อรองกันเองระหว่างทำ |
+| user คุยกับ agent | ไม่ได้ | ได้ คุยรายตัวได้ |
+| token | ปกติ | แพงกว่าหลายเท่า |
+| ใช้เมื่อไหร่ | **ทุกงาน** | เฉพาะงานที่ผ่านเกณฑ์ + user confirm |
+
+### Subagent — ใช้เป็นค่าเริ่มต้นเสมอ
+
+เรียกกี่ตัวขึ้นกับขนาดงาน (แต่ห้ามใช้ขนาดงานมาตัดสินว่าจะ spawn หรือไม่ spawn):
+
+- **แก้จุดเดียว / บั๊กชัด** → lead ตัวเดียวพอ
+- **ฟีเจอร์ใหม่ / แตะหลายระบบ** → Atlas วางแผน → lead + ที่ปรึกษาเฉพาะด้านที่งานแตะจริง → Sentinel ปิดท้าย
+- **งาน 3D** → เรียกทีละ stage ตามลำดับ pipeline โดยมี approval gate จาก user คั่นทุก stage
+
+ตอน spawn ทุกครั้ง: `description` ขึ้นต้นด้วย callsign (`Forge: fix creep pathing`) และแนบ "บริบทโปรเจกต์" ที่คัดจาก memory เฉพาะ fact ที่เกี่ยวกับงานนั้น
+
+### Agent Team — ต้องผ่านด่าน ห้ามเปิดเอง
+
+เปิดใช้ได้แล้วผ่าน `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` ใน `settings.json` แต่ต้องผ่าน 3 ด่านก่อนทุกครั้ง:
+
+1. **งานต้องการให้ agent เถียง/ต่อรองกันเอง*ระหว่างทำ*มั้ย?** — ถ้าแค่ต่างคนต่างทำแล้ว orchestrator รวมผลได้ = SUB จบ (งานที่เครื่องมือวัดได้ เช่น profiler ชี้ตัวการได้ = SUB เสมอ)
+2. **แบ่งก้อนอิสระที่ไฟล์ไม่ชนกันได้มั้ย?** — sequential (คิด→ทำ→ตรวจ) หรือแตะไฟล์ชุดเดียวกัน = SUB จบ
+3. **ผ่าน 1+2 → เสนอ user ก่อนเสมอ** — บอกเหตุผลที่เข้าเกณฑ์ + จำนวนตัว + เตือนว่า token แพงกว่าหลายเท่า แล้วรอ confirm
+
+**Blacklist ห้าม TEAM เด็ดขาด:** flow การ์ดปกติ (หยิบ/ทำ/ปิด/จด memory) · 3D pipeline (approval gate ต้องผ่าน user ทีละ stage) · งานแตะ memory/config ระบบ · งานที่ agent ตัวเดียวเอาอยู่
+
+**เคสที่เข้าเกณฑ์:** debug ที่ไล่แล้ว 2 รอบยังไม่เจอ root cause และมีหลายทฤษฎีแข่งกัน → เปิดทีมแข่งสมมติฐานหักล้างกันเอง · review ใหญ่หลายมุมอิสระ (security/perf/test) ก่อน release
+
+**ตอนใช้จริง:** spawn teammate จาก agent definition ในโฟลเดอร์นี้เพื่อให้ tools + model ตรงตาม pin · teammate ที่เป็น lead-by-stack แก้โค้ดได้เองตาม definition (nested team ทำไม่ได้) · ไฟล์ memory ยังเป็นของ orchestrator คนเดียว teammate ห้ามแตะ
+
+**Protocol กันทีมปลอม (ฉบับเต็มใน RULES.md):** spawn แล้วต้อง verify ว่า `~/.claude/teams/session-*/config.json` เกิดจริง — ไม่เกิด = ได้ subagent ต้องแจ้ง user ทันที ห้ามทำต่อเนียนๆ · spawn prompt ต้องสั่งให้ teammates ส่งข้อความหักล้างกันเองอย่างน้อย 1 รอบ (ไม่สั่ง = มันไม่คุยกันเอง) · แตกงานลง shared task list ให้ claim เอง · lead ห้ามทำงานแทน + ต้อง relay การโต้แย้งให้ user เห็น
+
+**ข้อจำกัด (ยัง experimental):** `/resume` แล้ว teammates หาย ต้อง spawn ใหม่ · task status อาจค้าง เช็คของจริงก่อนเชื่อ · Windows ใช้ split pane ไม่ได้ ต้องเป็น in-process mode · แชทกับ teammate รายตัวได้เฉพาะ terminal CLI — desktop app เห็นได้ผ่าน lead relay เท่านั้น
