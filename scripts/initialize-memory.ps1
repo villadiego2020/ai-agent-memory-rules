@@ -52,6 +52,34 @@ Get-ChildItem -LiteralPath $templateDirectory -Recurse -File |
         }
     }
 
+foreach ($directoryName in @('work', 'archive', 'analysis')) {
+    $detailDirectory = Join-Path $memoryDirectory $directoryName
+    $detailMarker = Join-Path $detailDirectory '.gitkeep'
+    $existingMarker = Get-Item -LiteralPath $detailMarker -Force -ErrorAction SilentlyContinue
+    if ($existingMarker) {
+        if ($existingMarker.PSIsContainer) {
+            throw "Cannot initialize Memory because a directory occupies the tracking marker path: $detailMarker"
+        }
+        Assert-MemoryPathIsNotReparsePoint -Path $detailMarker -Purpose 'Project Memory tracking marker'
+        $preservedFiles.Add($detailMarker)
+        continue
+    }
+
+    $detailDirectoryItem = Get-Item -LiteralPath $detailDirectory -Force -ErrorAction SilentlyContinue
+    if ($detailDirectoryItem -and @(Get-ChildItem -LiteralPath $detailDirectory -Force).Count -gt 0) {
+        continue
+    }
+
+    $templateMarker = Join-Path $templateDirectory "$directoryName/.gitkeep"
+    if (-not (Test-Path -LiteralPath $templateMarker -PathType Leaf)) {
+        throw "Memory template tracking marker is missing: $templateMarker"
+    }
+    if ($PSCmdlet.ShouldProcess($detailMarker, 'Create tracking marker for empty project Memory directory')) {
+        Copy-Item -LiteralPath $templateMarker -Destination $detailMarker
+        $createdFiles.Add($detailMarker)
+    }
+}
+
 Write-Host "Project: $resolvedProjectPath"
 Write-Host "Memory:  $memoryDirectory"
 Write-Host "Created: $($createdFiles.Count) file(s)"

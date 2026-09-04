@@ -13,6 +13,20 @@ function Assert-True {
     if (-not $Condition) { throw "Assertion failed: $Message" }
 }
 
+function Get-TreeSnapshot {
+    param([Parameter(Mandatory)][string]$Root)
+
+    $canonicalRoot = [System.IO.Path]::GetFullPath($Root)
+    $records = foreach ($item in @(Get-ChildItem -LiteralPath $canonicalRoot -Recurse -Force | Sort-Object FullName)) {
+        [ordered]@{
+            Path = $item.FullName.Substring($canonicalRoot.Length).TrimStart('\', '/')
+            Type = if ($item.PSIsContainer) { 'directory' } else { 'file' }
+            Content = if ($item.PSIsContainer) { '' } else { [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($item.FullName)) }
+        }
+    }
+    return ($records | ConvertTo-Json -Depth 4 -Compress)
+}
+
 function Invoke-Migration {
     param([string[]]$ExtraArguments = @())
     $invocationId = [Guid]::NewGuid().ToString('N')
@@ -46,9 +60,11 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'unsupported-root.txt'), 'unsupported-root-marker')
     [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'unsupported/private.txt'), 'unsupported-dir-marker')
 
+    $legacySnapshotBeforePreview = Get-TreeSnapshot -Root $legacyRoot
     $previewExitCode = Invoke-Migration -ExtraArguments @('-WhatIf')
     Assert-True -Condition ($previewExitCode -eq 0) -Message 'Migration WhatIf exited successfully.'
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $projectRoot '.agent-memory'))) -Message 'Migration WhatIf created no destination.'
+    Assert-True -Condition ((Get-TreeSnapshot -Root $legacyRoot) -ceq $legacySnapshotBeforePreview) -Message 'Migration WhatIf did not change the legacy source tree.'
 
     $migrationExitCode = Invoke-Migration
     Assert-True -Condition ($migrationExitCode -eq 0) -Message 'Migration exited successfully.'
@@ -59,9 +75,23 @@ try {
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'work/PROJ-001.md') -Raw) -eq 'legacy-work-marker') -Message 'Work detail copied.'
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'work/nested/PROJ-002.md') -Raw) -eq 'nested-work-marker') -Message 'Nested work detail copied.'
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'analysis/ref-topic.md') -Raw) -eq 'legacy-analysis-marker') -Message 'Analysis detail copied.'
+    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $destinationRoot 'archive/.gitkeep') -PathType Leaf) -Message 'Empty archive directory received a tracking marker.'
+    Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $destinationRoot 'work/.gitkeep'))) -Message 'Populated work directory did not receive an unnecessary tracking marker.'
+    Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $destinationRoot 'analysis/.gitkeep'))) -Message 'Populated analysis directory did not receive an unnecessary tracking marker.'
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $destinationRoot 'unsupported-root.txt'))) -Message 'Unsupported root file ignored.'
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $destinationRoot 'unsupported'))) -Message 'Unsupported directory ignored.'
     Assert-True -Condition (Test-Path -LiteralPath (Join-Path $legacyRoot 'MEMORY.md') -PathType Leaf) -Message 'Legacy source preserved.'
+
+    & git -C $projectRoot add -- .agent-memory
+    if ($LASTEXITCODE -ne 0) { throw 'Could not stage migrated Memory in the temporary Git repository.' }
+    & git -C $projectRoot -c 'user.name=Memory Rules Test' -c 'user.email=memory-rules@example.invalid' commit --quiet -m 'Test migrated Memory visibility'
+    if ($LASTEXITCODE -ne 0) { throw 'Could not commit migrated Memory in the temporary Git repository.' }
+    $clonedProjectRoot = Join-Path $temporaryRoot 'Fresh Migration Clone'
+    & git clone --quiet $projectRoot $clonedProjectRoot
+    if ($LASTEXITCODE -ne 0) { throw 'Could not clone the migrated temporary Git repository.' }
+    foreach ($directoryName in @('work', 'archive', 'analysis')) {
+        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $clonedProjectRoot ".agent-memory/$directoryName") -PathType Container) -Message "Fresh clone retained the $directoryName detail directory."
+    }
 
     $destinationHash = (Get-FileHash -LiteralPath (Join-Path $destinationRoot 'MEMORY.md') -Algorithm SHA256).Hash
     $secondStdout = Join-Path $temporaryRoot 'second-migration.stdout.txt'
@@ -81,6 +111,9 @@ try {
     $resolvedTemporaryRoot = [System.IO.Path]::GetFullPath($temporaryRoot)
     if ($resolvedTemporaryRoot.StartsWith($resolvedTemporaryBase, [System.StringComparison]::OrdinalIgnoreCase) -and
         $resolvedTemporaryRoot -ne $resolvedTemporaryBase -and (Test-Path -LiteralPath $resolvedTemporaryRoot)) {
+        Get-ChildItem -LiteralPath $resolvedTemporaryRoot -Recurse -Force | ForEach-Object {
+            $_.Attributes = [System.IO.FileAttributes]::Normal
+        }
         [System.IO.Directory]::Delete($resolvedTemporaryRoot, $true)
     }
 }

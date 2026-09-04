@@ -9,6 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'lib/MemoryRules.Common.ps1')
 
+$repositoryRoot = Get-MemoryRulesRepositoryRoot -CallingScriptRoot $PSScriptRoot
+$templateMemoryRoot = Join-Path $repositoryRoot 'templates/memory'
 $legacyRoot = Get-MemoryCanonicalPath -Path $LegacyMemoryPath
 if (-not (Test-Path -LiteralPath $legacyRoot -PathType Container)) {
     throw "Legacy Memory path does not exist or is not a directory: $legacyRoot"
@@ -46,6 +48,8 @@ if ($existingDestination) {
 }
 
 $copyPlan = [System.Collections.Generic.List[object]]::new()
+$detailDirectoriesWithFiles = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+$hasRecognizedDetailDirectory = $false
 foreach ($sourceItem in @(Get-ChildItem -LiteralPath $legacyRoot -Filter '*.md' -File -Force | Sort-Object Name)) {
     Assert-MemoryPathIsNotReparsePoint -Path $sourceItem.FullName -Purpose 'Legacy Memory top-level Markdown file'
     if (-not (Test-MemoryPathInsideRoot -Path $sourceItem.FullName -Root $legacyRoot)) {
@@ -68,6 +72,7 @@ foreach ($directoryName in @('work', 'archive', 'analysis')) {
     if (-not $sourceDirectoryItem) {
         continue
     }
+    $hasRecognizedDetailDirectory = $true
     if (-not $sourceDirectoryItem.PSIsContainer) {
         throw "Legacy Memory detail path is not a directory: $sourceDirectory"
     }
@@ -93,11 +98,33 @@ foreach ($directoryName in @('work', 'archive', 'analysis')) {
             Source = $sourceItem.FullName
             Target = $targetPath
         })
+        [void]$detailDirectoriesWithFiles.Add($directoryName)
     }
 }
 
-if ($copyPlan.Count -eq 0) {
+if ($copyPlan.Count -eq 0 -and -not $hasRecognizedDetailDirectory) {
     throw "Legacy Memory does not contain any supported top-level Markdown or detail files: $legacyRoot"
+}
+
+foreach ($directoryName in @('work', 'archive', 'analysis')) {
+    if ($detailDirectoriesWithFiles.Contains($directoryName)) {
+        continue
+    }
+
+    $templateMarker = Join-Path $templateMemoryRoot "$directoryName/.gitkeep"
+    if (-not (Test-Path -LiteralPath $templateMarker -PathType Leaf)) {
+        throw "Memory template tracking marker is missing: $templateMarker"
+    }
+    Assert-MemoryPathIsNotReparsePoint -Path $templateMarker -Purpose 'Memory template tracking marker'
+
+    $targetMarker = Join-Path (Join-Path $destinationRoot $directoryName) '.gitkeep'
+    if (-not (Test-MemoryPathInsideRoot -Path $targetMarker -Root $destinationRoot)) {
+        throw "Migration target escaped the project Memory directory: $targetMarker"
+    }
+    $copyPlan.Add([pscustomobject]@{
+        Source = $templateMarker
+        Target = $targetMarker
+    })
 }
 
 New-DirectoryIfMissing -Path $destinationRoot -CommandContext $PSCmdlet
