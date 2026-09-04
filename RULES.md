@@ -9,7 +9,7 @@
 ## กฎเหล็ก: แตะโค้ด = ต้องผ่าน lead
 
 - **orchestrator (Claude หลัก) ห้ามใช้ Edit / Write / NotebookEdit กับไฟล์ของโปรเจกต์เด็ดขาด** — แม้แก้บรรทัดเดียว แก้ typo แก้ค่าคงที่ ก็ต้อง spawn lead ตาม stack เสมอ
-- **ไฟล์ที่ orchestrator แก้เองได้มีชนิดเดียว = ไฟล์ระบบของตัวเอง**: `~/.claude/projects/*/memory/**`, `~/.claude/CLAUDE.md` (หรือ `RULES.md` ในรีโปที่ใช้ template นี้), `~/.claude/agents/*.md`, `~/.claude/settings.json` — นอกจากนี้ห้ามแตะ
+- **ไฟล์ที่ orchestrator แก้เองได้มีชนิดเดียว = ไฟล์ระบบของตัวเอง**: `<project-root>/.agent-memory/**`, `~/.claude/CLAUDE.md` (หรือ `RULES.md` ในรีโปที่ใช้ template นี้), `~/.claude/agents/*.md`, `~/.claude/settings.json` — นอกจากนี้ห้ามแตะ
 - **ห้ามใช้เหตุผลเหล่านี้ข้ามกฎ**: "งานเล็กแค่นี้" · "ทำเองเร็วกว่า" · "spawn แล้วเปลือง token" · "รู้คำตอบอยู่แล้ว" · "user น่าจะรีบ" — ถ้า user อยากให้ลัด **user จะสั่งเองว่า "ทำเองเลย"** เท่านั้น
 - กฎนี้คุมเฉพาะ**การเขียนไฟล์** — อ่านโค้ด/ค้นหา/วิเคราะห์/ตอบคำถาม/รันคำสั่งอ่านอย่างเดียว (Read/Grep/Glob/Bash) orchestrator ทำเองได้ตามปกติ
 - **ก่อนลงมือทุกงาน ประกาศ 1 บรรทัดว่า "งานนี้ใครคิด ใครทำ + โหมด [SUB] หรือ [TEAM]"** แล้วค่อยเริ่ม (เกณฑ์เลือกโหมดดูหัวข้อ "กติกา Agent Team" ข้างล่าง — ตัดสินด้วยเกณฑ์ ห้ามใช้ความรู้สึก) — ถ้าประกาศไม่ได้แปลว่ายังไม่รู้ว่างานอยู่หมวดไหน ให้ถาม user ก่อน 
@@ -100,6 +100,8 @@ Default ของระบบ = **turn-based** (user พิมพ์ → ทำ 
 
 ## Memory convention (บังคับทุก project ทุก session — เคร่งครัด)
 
+Memory จริงของแต่ละโปรเจกต์อยู่ที่ `<project-root>/.agent-memory/` และ version ไปกับ Git repository + branch ของโปรเจกต์นั้นเท่านั้น ห้ามอ่าน/เขียน/fallback ไป Memory กลางหรือ path ที่ encode ไว้นอกโปรเจกต์ · orchestrator เป็นคนเดียวที่แก้ Memory; subagent อ่านได้อย่างเดียวและต้องรายงาน fact ใหม่กลับ orchestrator
+
 ### อะไรเป็นอะไร (แผนผังสรุป)
 
 ```
@@ -108,13 +110,13 @@ archive/PROJ-XXX.md     = detail งานจบสนิท (การ์ดล
 analysis/ref-<slug>.md  = ความรู้/audit หลังการวิเคราะห์ ไม่ผูกการ์ด  ┘  3 folder นี้)
 
 project_open_work.md    = master index งานเปิดทุกชนิด (1:1 กับ work/ — งานเปิดอยู่ที่นี่ที่เดียว)
-project_archive.md      = master index งานจบทุกชนิด (โซน: BUGS / IMPROVE-OPTIMIZE / REFACTOR / FEATURE / ANALYSIS — header เป็นคำเปล่าเป๊ะๆ ไม่พ่วงคำอธิบาย, ครบทุกโซนเสมอ, โซนว่าง = "(ยังไม่มี)", flat list ใหม่→เก่า ไม่แยกปี/เดือน)
+project_archive.md      = master index งานจบทุกชนิด (โซน: BUGS / IMPROVE-OPTIMIZE / REFACTOR / FEATURE / ANALYSIS — header เป็นคำเปล่าเป๊ะๆ ไม่พ่วงคำอธิบาย, ครบทุกโซนเสมอ, โซนว่าง = "(None)", flat list ใหม่→เก่า ไม่แยกปี/เดือน)
 ```
 
 - รหัสการ์ด: ตั้งชื่อ prefix ต่อโปรเจกต์ไม่ให้ชนกัน (เช่น `<ชื่อย่อโปรเจกต์>-XXX`) — ถ้าโปรเจกต์นั้นมี task tracker ที่ออกเลขให้เอง (เช่น Jira, Linear, GitHub Issues หรือระบบอื่นที่คุณใช้) ให้ tracker เป็นคนออกเลข ห้ามตั้งเอง
 - index ทุกไฟล์ = 1 ใบ 1-2 บรรทัด + ลิงก์ detail — ห้ามมีเนื้อยาว
-- ปิดงาน 1 ใบ = ย้ายไฟล์ work/→archive/ + ลบบรรทัด open_work + เพิ่มบรรทัดในโซนของมันใน archive + อัปเดต index หลัก + commit/push
-- ทุกใบที่เปิดอยู่ต้องบอกว่า "พร้อมทำ" หรือ "รออะไรอยู่": บรรทัด `**สถานะพร้อม:** พร้อมทำ` หรือ `**สถานะพร้อม:** ⛔ รอ <สิ่งที่รอ> (<อ้างอิงที่เช็คได้>)` — ของที่รอต้องเขียนให้เช็คได้ว่ามาถึงหรือยัง ห้ามเขียนลอยๆ ว่า "รอของ"
+- ปิดงาน 1 ใบ = ย้ายไฟล์ work/→archive/ + ลบบรรทัด open_work + เพิ่มบรรทัดในโซนของมันใน archive + อัปเดต index หลัก + commit Memory แยกจาก work โดย default
+- ทุกใบที่เปิดอยู่ต้องบอกว่า "พร้อมทำ" หรือ "รออะไรอยู่": บรรทัด `**Ready status:** Ready` หรือ `**Ready status:** BLOCKED - waiting for <สิ่งที่รอ> (<อ้างอิงที่เช็คได้>)` — ของที่รอต้องเขียนให้เช็คได้ว่ามาถึงหรือยัง ห้ามเขียนลอยๆ ว่า "รอของ"
 - ห้ามสร้างไฟล์ต่อ task/การ์ดนอกเหนือ work/ + archive/ + analysis/
 
 ### โครงไฟล์ต่อ project
@@ -137,18 +139,23 @@ project_archive.md      = master index งานจบทุกชนิด (โ
 ### Flow บังคับต่อ 1 task
 
 0. Audit/Analysis → ออกแค่ `analysis/ref-*.md` + index โซน ANALYSIS · การ์ดที่เสนอ (หลัง user confirm) นอนเป็นการ์ด backlog ใน tracker ของโปรเจกต์นั้น — ยังไม่สร้าง `work/`
-1. หยิบ task → เช็ค project_archive.md ก่อนว่าเคยแก้/เคย REFUTED มาก่อนมั้ย → ย้ายการ์ดใน tracker ไป "In Progress" → สร้าง `work/PROJ-XXX.md` + บรรทัด open_work พร้อมบรรทัด `**สถานะพร้อม:**`
+1. หยิบ task → เช็ค project_archive.md ก่อนว่าเคยแก้/เคย REFUTED มาก่อนมั้ย → ย้ายการ์ดใน tracker ไป "In Progress" → สร้าง `work/PROJ-XXX.md` + บรรทัด open_work พร้อมบรรทัด `**Ready status:**`
 2. ระหว่างทำ → จด root cause / สิ่งที่ตัดออกแล้ว ลง work/ + บรรทัด index ใน project_open_work.md ที่เดียว
 3. จบสนิท (merged + เทสผ่าน ไม่มี follow-up) → ย้ายไฟล์ work/→archive/ → ลบบรรทัดออกจาก open_work + เพิ่มบรรทัดในโซนตามชนิดงานของ project_archive.md → อัปเดต MEMORY.md
 4. ยังมี follow-up ค้าง → คงอยู่ work/ + open_work ต่อ จนปิดจริงค่อยย้าย
 
-### Backup repo (แนะนำ)
+### Commit convention
 
-แนะนำให้เก็บ memory เป็น git repo แยก (ไม่ผูกกับโปรเจกต์งานจริง) แล้ว **commit + push ทุกครั้งที่อัปเดตไฟล์ memory ใดๆ** เพื่อ track ว่าแต่ละครั้งแก้อะไร
+Use these rules identically in every project:
 
-- commit message ควรนำหน้าด้วยชื่อโปรเจกต์ตัวใหญ่ในวงเล็บเหลี่ยม เช่น `[PROJECT_NAME] archive PROJ-482 + update index` · แก้ของกลาง (rules/agent definitions) ใช้ `[GLOBAL]`
-- repo memory ของคุณเองสามารถตั้งเป็น standing-authorized ให้ agent commit+push อัตโนมัติได้โดยไม่ต้องถามทุกครั้ง (ต่างจาก repo งานจริงที่ควรขอก่อน push เสมอ)
-- commit เฉพาะไฟล์ memory ที่แก้ — ห้าม `git add -A` ทั้งโฟลเดอร์โดยไม่ดู status ก่อน
+- Work files and Memory must be separate commits by default.
+- Confirmed defect, regression, security issue, or broken behavior work commit: `[Bug] <message>`.
+- All other project work—new capability, improvement, refactor, tooling, documentation, and tests unless tied to a confirmed defect—uses `[Feature] <message>`.
+- A commit containing only `.agent-memory/**` uses `[Memory] <message>`.
+- Never mix unrelated Bug and Feature work; split them into separate commits.
+- Never label a mixed work-and-Memory commit `[Memory]`; split the commit instead.
+- Commit Memory to the current project repository and branch.
+- Push follows the current project's normal authorization and policy. Never auto-push merely because Memory changed.
 
 ### รูปแบบการเขียน (ทุกไฟล์ memory)
 

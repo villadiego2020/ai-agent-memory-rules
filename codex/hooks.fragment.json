@@ -1,0 +1,35 @@
+{
+  "description": "Project-local .agent-memory loader from ai-agent-memory-rules. Merge these entries into the user-level Codex hooks.json file.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{LOADER_COMMAND}}",
+            "commandWindows": "{{LOADER_COMMAND_WINDOWS}}",
+            "statusMessage": "Loading project-local Memory (ai-agent-memory-rules)",
+            "additionalContextLimit": 6500,
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{LOADER_COMMAND}}",
+            "commandWindows": "{{LOADER_COMMAND_WINDOWS}}",
+            "statusMessage": "Loading project-local Memory for subagent (ai-agent-memory-rules)",
+            "additionalContextLimit": 6500,
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

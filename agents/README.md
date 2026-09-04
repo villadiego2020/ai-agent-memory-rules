@@ -1,20 +1,19 @@
-# Claude Agents — ทีม Subagent ส่วนตัว
+# Claude Code Agent Profiles
 
-ทีมผู้เชี่ยวชาญสำหรับ Claude Code ใช้ร่วมกัน**ทุกโปรเจกต์**ในเครื่อง
+ทีมผู้เชี่ยวชาญสำหรับ Claude Code ที่ติดตั้งจากรีโปกฎกลางนี้และใช้ร่วมกันทุกโปรเจกต์ในเครื่อง ส่วน Memory จริงอยู่ใน `.agent-memory/` ของแต่ละโปรเจกต์
 
 > README นี้เป็น**เอกสารให้คนอ่าน** — Claude Code ไม่โหลดไฟล์นี้เข้า context
 > **กฎที่บังคับใช้จริง** (routing, กฎเหล็ก "แตะโค้ด = ต้องผ่าน lead", เกณฑ์เลือกโหมด) อยู่ใน [`../RULES.md`](../RULES.md) ที่เดียว — แก้กฎต้องแก้ที่นั่น
 
 ## ตำแหน่งติดตั้ง
 
-Repo นี้ต้อง clone/วางไว้ที่ `~/.claude/agents/` (Windows: `C:\Users\<user>\.claude\agents\`)
-Claude Code อ่าน agent ระดับ user จากโฟลเดอร์นี้โดยตรง — วางแล้วใช้ได้เลยทุกโปรเจกต์ ไม่ต้องตั้งค่าเพิ่ม
+Clone รีโปนี้ไว้ที่ตำแหน่งที่คุณดูแล แล้วใช้ installer เพื่อ copy หรือ link เฉพาะไฟล์ agent ไปยัง user configuration ของ Claude Code โดยไม่แทนที่ทั้งโฟลเดอร์ agents:
 
-```
-git clone <repo-url> "$HOME/.claude/agents"
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Claude -Mode Copy
 ```
 
-แก้ไฟล์ `.md` ตัวไหนก็ได้ — hot-reload ภายใน ~3 วินาที
+Installer นี้ไม่สร้างหรือ migrate Memory ให้โปรเจกต์ ใช้ `scripts/initialize-memory.ps1 -ProjectPath <project>` แยกต่างหาก แล้ว commit `.agent-memory/` ไปกับ Git repository และ branch ของโปรเจกต์นั้น
 
 ## ทีมมีใครบ้าง
 
@@ -58,7 +57,7 @@ alias `fable`/`opus`/`sonnet` ชี้รุ่นล่าสุดของ�
 ## กติกาหลัก: Lead-by-Stack
 
 - **พระเอกคือ lead ที่ตรงกับ stack ของโปรเจกต์** — ที่ปรึกษาออกแบบแล้วส่งต่อ ไม่ลงมือเอง
-- **orchestrator ห้ามแก้โค้ดโปรเจกต์เอง** ต้อง spawn lead เสมอ (แก้เองได้เฉพาะไฟล์ memory + config ของทีม agent)
+- **orchestrator ห้ามแก้โค้ดโปรเจกต์เอง** ต้อง spawn lead เสมอ (แก้เองได้เฉพาะ `<project-root>/.agent-memory/**` + config ของทีม agent)
 - ทุก agent ขึ้นต้นรายงานด้วยบรรทัด `💭 ชื่อ: กำลังคิดอะไร` และ orchestrator ต้อง relay บรรทัดนี้ให้ user เห็นเสมอ
 - ตาราง routing เต็ม (บริบทงาน → ใครคิด ใครทำ) อยู่ใน [`../RULES.md`](../RULES.md)
 
@@ -80,7 +79,7 @@ alias `fable`/`opus`/`sonnet` ชี้รุ่นล่าสุดของ�
 - **ฟีเจอร์ใหม่ / แตะหลายระบบ** → Atlas วางแผน → lead + ที่ปรึกษาเฉพาะด้านที่งานแตะจริง → Sentinel ปิดท้าย
 - **งาน 3D** → เรียกทีละ stage ตามลำดับ pipeline โดยมี approval gate จาก user คั่นทุก stage
 
-ตอน spawn ทุกครั้ง: `description` ขึ้นต้นด้วย callsign (`Forge: fix creep pathing`) และแนบ "บริบทโปรเจกต์" ที่คัดจาก memory เฉพาะ fact ที่เกี่ยวกับงานนั้น
+ตอน spawn ทุกครั้ง: `description` ขึ้นต้นด้วย callsign (`Forge: fix creep pathing`) และแนบ "บริบทโปรเจกต์" ที่คัดจาก `<project-root>/.agent-memory/` เฉพาะ fact ที่เกี่ยวกับงานนั้น · subagent อ่าน Memory ได้อย่างเดียวและรายงาน fact ใหม่กลับ orchestrator
 
 ### Agent Team — ต้องผ่านด่าน ห้ามเปิดเอง
 

@@ -39,9 +39,9 @@ color: purple
 
 orchestrator จะคัด fact สำคัญแนบมาให้ใน prompt เสมอ แต่ถ้ายังขาดบริบทและ prompt ไม่ได้ห้ามไว้ **คุณเปิดอ่าน memory ของโปรเจกต์เองได้** ที่:
 
-`~/.claude/projects/<cwd ที่ encode>/memory/`
+`<project-root>/.agent-memory/`
 
-- **วิธี encode ชื่อโฟลเดอร์:** เอา absolute path ของ cwd แล้วแทนทุกตัวอักษรที่ไม่ใช่ `a-z A-Z 0-9` ด้วย `-` — เช่น `C:\Work\git\BOBOAssist` → `C--Work-git-BOBOAssist` (ตัวอักษรไดรฟ์อาจเป็นตัวเล็กหรือใหญ่ก็ได้ ถ้าหาไม่เจอให้ list โฟลเดอร์ `~/.claude/projects/` ดู)
+- **ตำแหน่งเดียวที่อนุญาต:** ใช้ `.agent-memory/` ใต้ Git root ปัจจุบัน (หรือ cwd ถ้าไม่ใช่ Git repo) เท่านั้น ห้ามอ่าน path กลางหรือ fallback ไป Memory ของโปรเจกต์อื่น
 - **ไฟล์ที่มีประโยชน์ที่สุด:** `MEMORY.md` (สารบัญ) · `user_and_feedback.md` (กฎที่ user สั่ง) · `project_open_work.md` (งานที่ยังเปิด) · `project_archive.md` (สรุปงานจบ + สิ่งที่ REFUTED ไปแล้ว ห้ามไล่ซ้ำ) · `work/<รหัสการ์ด>.md` (รายละเอียดงานที่กำลังทำ)
 - 🚨 **อ่านอย่างเดียว — ห้ามสร้าง/แก้/ลบไฟล์ใน memory เด็ดขาด** orchestrator เป็นคนเดียวที่มีสิทธิ์แก้ ถ้าคุณเจอ fact ใหม่ที่ควรจด (root cause, gotcha) ให้เขียนไว้ในรายงาน orchestrator จะจดให้เอง
 - อย่าเปิดพร่ำเพรื่อ — อ่านเฉพาะที่เกี่ยวกับงานตรงหน้า (บางโปรเจกต์มีเกิน 100 ไฟล์)
