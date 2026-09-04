@@ -37,6 +37,8 @@ try {
     }
     [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'MEMORY.md'), 'legacy-index-marker')
     [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'project_open_work.md'), 'legacy-open-marker')
+    [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'gotchas.md'), 'durable-gotchas-marker')
+    [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'workflow.md'), 'durable-workflow-marker')
     [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'work/PROJ-001.md'), 'legacy-work-marker')
     New-Item -ItemType Directory -Path (Join-Path $legacyRoot 'work/nested') -Force | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $legacyRoot 'work/nested/PROJ-002.md'), 'nested-work-marker')
@@ -52,6 +54,8 @@ try {
     Assert-True -Condition ($migrationExitCode -eq 0) -Message 'Migration exited successfully.'
     $destinationRoot = Join-Path $projectRoot '.agent-memory'
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'MEMORY.md') -Raw) -eq 'legacy-index-marker') -Message 'Known index copied.'
+    Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'gotchas.md') -Raw) -eq 'durable-gotchas-marker') -Message 'Top-level gotchas Markdown copied.'
+    Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'workflow.md') -Raw) -eq 'durable-workflow-marker') -Message 'Top-level workflow Markdown copied.'
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'work/PROJ-001.md') -Raw) -eq 'legacy-work-marker') -Message 'Work detail copied.'
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'work/nested/PROJ-002.md') -Raw) -eq 'nested-work-marker') -Message 'Nested work detail copied.'
     Assert-True -Condition ((Get-Content -LiteralPath (Join-Path $destinationRoot 'analysis/ref-topic.md') -Raw) -eq 'legacy-analysis-marker') -Message 'Analysis detail copied.'

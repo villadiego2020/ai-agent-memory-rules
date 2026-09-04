@@ -283,7 +283,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\migrate-memory
   -WhatIf
 ```
 
-Remove `-WhatIf` after reviewing the preview. The migration copies only the four known indexes plus `work/`, `archive/`, and `analysis/`. It refuses a non-empty destination, rejects links or paths that escape the selected roots, never deletes the source, and never pushes anything.
+Remove `-WhatIf` after reviewing the preview. The migration copies every top-level Markdown file plus the `work/`, `archive/`, and `analysis/` detail directories; it ignores top-level non-Markdown files and unknown directories. It refuses a non-empty destination, rejects links or paths that escape the selected roots, preserves the source, and never pushes anything.
 
 After migration:
 

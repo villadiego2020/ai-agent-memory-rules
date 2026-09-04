@@ -46,19 +46,19 @@ if ($existingDestination) {
 }
 
 $copyPlan = [System.Collections.Generic.List[object]]::new()
-foreach ($indexName in @('MEMORY.md', 'user_and_feedback.md', 'project_open_work.md', 'project_archive.md')) {
-    $sourcePath = Join-Path $legacyRoot $indexName
-    $sourceItem = Get-Item -LiteralPath $sourcePath -Force -ErrorAction SilentlyContinue
-    if (-not $sourceItem) {
-        continue
+foreach ($sourceItem in @(Get-ChildItem -LiteralPath $legacyRoot -Filter '*.md' -File -Force | Sort-Object Name)) {
+    Assert-MemoryPathIsNotReparsePoint -Path $sourceItem.FullName -Purpose 'Legacy Memory top-level Markdown file'
+    if (-not (Test-MemoryPathInsideRoot -Path $sourceItem.FullName -Root $legacyRoot)) {
+        throw "Legacy Memory top-level Markdown file escaped its source directory: $($sourceItem.FullName)"
     }
-    if ($sourceItem.PSIsContainer) {
-        throw "Legacy Memory index is not a file: $sourcePath"
+
+    $targetPath = Join-Path $destinationRoot $sourceItem.Name
+    if (-not (Test-MemoryPathInsideRoot -Path $targetPath -Root $destinationRoot)) {
+        throw "Migration target escaped the project Memory directory: $targetPath"
     }
-    Assert-MemoryPathIsNotReparsePoint -Path $sourcePath -Purpose 'Legacy Memory index'
     $copyPlan.Add([pscustomobject]@{
         Source = $sourceItem.FullName
-        Target = Join-Path $destinationRoot $indexName
+        Target = $targetPath
     })
 }
 
@@ -97,7 +97,7 @@ foreach ($directoryName in @('work', 'archive', 'analysis')) {
 }
 
 if ($copyPlan.Count -eq 0) {
-    throw "Legacy Memory does not contain any supported index or detail files: $legacyRoot"
+    throw "Legacy Memory does not contain any supported top-level Markdown or detail files: $legacyRoot"
 }
 
 New-DirectoryIfMissing -Path $destinationRoot -CommandContext $PSCmdlet
