@@ -1,147 +1,147 @@
 # AI Agent Memory Rules
 
-Shared operating rules, reusable specialist profiles, and project-local Memory for Codex and Claude Code.
+Shared rules and specialist agents for web, Unity, multiplayer, and 3D work in **Codex** and **Claude Code**.
 
-This repository provides the shared layer. Each working project owns its actual Memory in `<project-root>/.agent-memory/`, on the same branch and in the same Git repository as the code it describes.
+Install the global configuration **once per user/configuration home** (หนึ่งครั้งต่อบัญชีผู้ใช้หรือโฟลเดอร์ config). Every project that uses that configuration home can use the agents; you do not need to copy, commit, or push the agent configuration into each project. Project-local `.agent-memory` is an optional second layer for projects that need persistent context.
 
-## Why this exists
+## What this repository provides
 
-AI coding sessions often lose decisions, repeat rejected investigations, or apply one project's context to another. This setup separates two kinds of context:
+- Global rules and 13 specialist agent profiles for Codex and Claude Code.
+- Lead-by-stack routing that keeps small work fast and gives risky work independent review.
+- Optional project Memory templates plus safe install, validation, migration, and uninstall scripts.
 
-- **Shared rules and agent profiles** are installed once from this repository and apply across projects.
-- **Project Memory** lives beside the project it describes and travels through that project's normal Git workflow.
-
-The result is reviewable Markdown instead of an opaque database. A new session loads the shared rules first, finds the current project root, then reads only that project's four small Memory indexes.
-
-```text
-Open a project
-      |
-      v
-Load shared rules and agent profiles
-      |
-      v
-Resolve nearest Git root (or current directory)
-      |
-      v
-Read <project-root>/.agent-memory/{four indexes}
-      |
-      v
-Open work/archive/analysis details only when needed
-```
-
-This public repository contains templates and integration code only. It must not contain real project history, secrets, private trackers, customer data, or personal machine paths.
-
-## What is Memory?
-
-Memory is a small, versioned set of Markdown files containing verified context that a future project session is likely to need:
-
-- durable project-specific rules and user feedback;
-- open work, blockers, and verifiable dependencies;
-- completed work, root causes, and fixes;
-- rejected hypotheses that should not be repeated without new evidence;
-- reusable investigation or audit findings.
-
-Memory is not a chat transcript, a replacement for source control, a secret store, or the authoritative task tracker. Keep it concise and evidence-based.
-
-Because Memory lives in the working project's repository:
-
-- a checked-out branch receives the Memory committed on that branch;
-- a worktree receives the Memory from its own checkout;
-- code and its relevant decisions can be reviewed together;
-- normal merge conflicts can occur when two branches edit the same Memory index.
-
-Resolve Memory conflicts deliberately. Do not accept one side blindly: keep valid entries from both branches, then restore the one-to-one relationship between `project_open_work.md` and `work/*.md`.
-
-## Repository contents
+This public repository contains only reusable rules, templates, and tooling. Do not put real project history, secrets, private tracker data, or personal paths here.
 
 ```text
-ai-agent-memory-rules/
-|-- README.md
-|-- RULES.md                         # Claude Code global rules source
-|-- agents/                          # Claude Code agent profiles
-|-- codex/
-|   |-- AGENTS.md                    # Codex global rules source
-|   |-- agents/                      # Codex custom agents
-|   |-- hooks.fragment.json
-|   `-- hooks/load-project-memory.ps1
-|-- templates/memory/                # New .agent-memory skeleton
-`-- scripts/
-    |-- install.ps1
-    |-- initialize-memory.ps1
-    |-- migrate-memory.ps1
-    |-- validate.ps1
-    `-- uninstall.ps1
+Open any project
+  -> load global rules and agent profiles
+  -> use the lead that matches the stack
+  -> load this project's .agent-memory only when it exists
 ```
 
-## Project Memory layout
+## Agents and responsibilities
 
-Initialization creates this directory inside the selected project:
+The orchestrator receives the request, inspects context, and routes implementation to one stack lead. Advisors analyze and recommend; they do not edit project code.
+
+### Implementation leads
+
+| Agent | Responsibility |
+| --- | --- |
+| `unity-expert` | Implements Unity/C# gameplay, editor tooling, asset pipeline, and performance work. |
+| `web-expert` | Implements web frontend, backend, APIs, and databases using the project's real stack. |
+
+### Read-only advisors
+
+| Agent | Responsibility |
+| --- | --- |
+| `uxui-expert` | Turns requirements into usable, visually coherent UI specifications for web and games. |
+| `game-architect` | Designs game ownership, events, OOP boundaries, patterns, config, saves, scenes, and state. |
+| `network-expert` | Evaluates authority, synchronization, latency, bandwidth, allocation/memory, and Photon Fusion/FishNet/Mirror trade-offs. |
+| `backend-architect` | Designs API contracts, data models, queries, migrations, caching, queues, auth, and scaling. |
+
+### Planning, verification, and project health
+
+| Agent | Responsibility |
+| --- | --- |
+| `system-planner` | Read-only planning for large cross-system changes: phases, dependencies, ownership, and exit criteria. |
+| `system-tester` | Explains each test's purpose and evidence, then verifies meaningful behavior/regression/network/save/security/critical-UI risk; may edit test files only. |
+| `project-manager` | Read-only audit of Memory indexes, tracker drift, open status, and backlog order. |
+
+### 3D pipeline
+
+| Agent | Responsibility |
+| --- | --- |
+| `3d-sculptor` | Organic forms, anatomy, silhouette, and high-resolution surface detail. |
+| `3d-modeller` | Hard-surface models, retopology, topology, UVs, LODs, optimization, and mesh export. |
+| `3d-rigger` | Skeletons, IK/FK controls, skinning, weights, facial controls, and deformation checks. |
+| `3d-animator` | Keyframes, cycles, timing, NLA clips, baking, and animation export. |
+
+Organic work follows `3d-sculptor -> 3d-modeller -> 3d-rigger -> 3d-animator`; hard-surface work starts with `3d-modeller`. The user reviews each creative stage before the next begins.
+
+## Routing rules
+
+| Work | Route |
+| --- | --- |
+| Read-only explanation or inspection | Orchestrator handles it directly. |
+| Small, low-risk change | One stack lead plus focused self-verification. |
+| UI change | The stack lead handles cosmetic or low-risk edits; use `uxui-expert` first when substantive design, specification, or accessibility judgment is required. |
+| Game architecture | `game-architect` advises, then `unity-expert` implements it. |
+| Multiplayer or realtime | `network-expert` advises and the stack lead implements; add the relevant architect only when domain or architecture decisions are involved. |
+| Large cross-system change | `system-planner` plans first; use only the advisors and leads the plan requires. |
+| Meaningful risk or an explicit test request | The lead hands the result to `system-tester` for independent verification. |
+
+Do not expand a small task into a large workflow: the planner is for cross-system work, and an independent tester is not mandatory for routine low-risk edits.
+
+All agents inspect the real stack and code before deciding. They favor intention-revealing names, small single-purpose functions, DRY code, useful OOP/event boundaries, reusable config instead of hardcoding, and design patterns only when they clarify ownership or testability. Network work must also account for authority, tick/send rate, bandwidth, allocations, late join, backpressure, and lifecycle cleanup.
+
+## What Memory means
+
+Memory is an **optional project-local layer** at `<project-root>/.agent-memory/`. It stores concise, verified context that future sessions should not have to rediscover: durable instructions, open work, blockers, completed fixes, root causes, rejected hypotheses, and reusable findings.
+
+Memory is not a chat transcript, a secret store, source control, or the authoritative task tracker. Keep it evidence-based and short enough to review.
+
+When enabled, the current workflow versions Memory in the project repository so it follows branches and worktrees. A local-only user may commit it without pushing; pushing is needed only when the Memory should be shared through a remote. Merge conflicts are possible: preserve valid entries from both sides and restore the one-to-one mapping between each index entry and its detail file.
+
+## Layout
 
 ```text
 <project-root>/.agent-memory/
-|-- MEMORY.md
-|-- user_and_feedback.md
-|-- project_open_work.md
-|-- project_archive.md
-|-- work/
-|   `-- PROJ-001.md
-|-- archive/
-|   `-- PROJ-000.md
-`-- analysis/
-    `-- ref-topic.md
+|-- MEMORY.md                  # Short navigation index
+|-- user_and_feedback.md       # Durable project instructions
+|-- project_open_work.md       # Index of open work
+|-- project_archive.md         # Index of completed work and analysis
+|-- work/                      # One detail file per open task
+|-- archive/                   # Completed task details
+`-- analysis/                  # Reusable findings not tied to a task
 ```
 
-| Path | Purpose | When to read |
-| --- | --- | --- |
-| `MEMORY.md` | Short navigation index | Every session |
-| `user_and_feedback.md` | Durable project rules and user feedback | Every session |
-| `project_open_work.md` | Master index of open work | Every session |
-| `project_archive.md` | Master index of finished work and analysis | Every session; scan before detailed history |
-| `work/<ID>.md` | Live evidence and decisions for one open task | While working on that task |
-| `archive/<ID>.md` | Final root cause, fix, rejected hypotheses, and lessons | For regressions or directly related work |
-| `analysis/ref-<slug>.md` | Reusable knowledge not tied to one task | When the indexed topic is relevant |
+The three detail directories contain `.gitkeep` while empty so a fresh clone retains the complete structure.
 
-The Codex hook reads only the four top-level indexes and caps injected output. Detail files remain available for deliberate, on-demand reading.
+## How loading differs
+
+| | Codex | Claude Code |
+| --- | --- | --- |
+| Global rules | `codex/AGENTS.md` -> `<Codex home>/AGENTS.md` | `RULES.md` -> `<Claude home>/CLAUDE.md` |
+| Agent profiles | `codex/agents/*.toml` | `agents/*.md` |
+| Project Memory | `<project-root>/.agent-memory/` | `<project-root>/.agent-memory/` |
+| Loading | Installed `SessionStart` and `SubagentStart` hooks read four indexes | Shared rules instruct the agent to read the indexes; no Claude hook is installed |
+
+The Codex hook reads only `MEMORY.md`, `user_and_feedback.md`, `project_open_work.md`, and `project_archive.md`, with a size cap. Detail files are read on demand. The orchestrator owns Memory writes; subagents treat Memory as read-only and report new facts back.
+
+## Windows quick start
+
+PowerShell 5.1 and PowerShell 7 are supported.
+
+```powershell
+git clone https://github.com/villadiego2020/ai-agent-memory-rules.git
+Set-Location .\ai-agent-memory-rules
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Both -Mode Copy
+```
+
+Run the installation once for each user or custom configuration home that should use these agents. Installation manages shared rules, agent profiles, and Codex hooks only; it never creates or migrates project Memory.
+
+Initialize one project, then validate it:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\initialize-memory.ps1 `
+  -ProjectPath "<path-to-project>"
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 `
+  -ProjectPath "<path-to-project>"
+```
+
+The initializer uses the nearest Git root, creates only missing files, preserves existing Memory, and warns if `.agent-memory` is ignored. Review and commit the initialized files in that project. For Codex, open `/hooks` once and trust the installed lifecycle hooks.
 
 ## Memory lifecycle
 
-### Analyze or propose
-
-Create `analysis/ref-<slug>.md` and add a concise link under `ANALYSIS` in `project_archive.md`. A proposed tracker item stays in the tracker backlog; do not create a `work/` file yet.
-
-### Start work
-
-Check `project_archive.md` for earlier fixes and rejected hypotheses. Create `work/<ID>.md`, add exactly one link in `project_open_work.md`, and record either:
-
-```text
-**Ready status:** Ready
-```
-
-or:
-
-```text
-**Ready status:** BLOCKED - waiting for <verifiable dependency>
-```
-
-### Work
-
-Keep confirmed root causes, decisions, rejected hypotheses, and remaining work in the task detail file. Keep indexes to one or two lines per entry.
-
-### Finish
-
-After implementation and focused verification are complete with no follow-up:
-
-1. Move `work/<ID>.md` to `archive/<ID>.md`.
-2. Remove its link from `project_open_work.md`.
-3. Add a concise link under the correct section in `project_archive.md`.
-4. Update the existing navigation line in `MEMORY.md`.
-5. Update the real tracker when the project uses one.
-6. Validate the local Memory structure.
-7. Commit work and Memory separately by default.
+1. **Analyze:** Put reusable investigation findings in `analysis/ref-<slug>.md` and link them from the `ANALYSIS` section of `project_archive.md`.
+2. **Open work:** Before starting, scan `project_archive.md`. Create `work/<ID>.md`, add exactly one link in `project_open_work.md`, and record whether the task is ready or waiting for a verifiable dependency.
+3. **Work:** Keep evidence, decisions, rejected hypotheses, and remaining work in the detail file. Keep index entries to one or two lines.
+4. **Archive:** When work and verification are complete, move the detail file from `work/` to `archive/`, remove its open-work link, add it under the correct archive section, update `MEMORY.md`, and validate.
 
 ## Commit convention
-
-Use these rules identically in every project:
 
 - Work files and Memory must be separate commits by default.
 - Confirmed defect, regression, security issue, or broken behavior work commit: `[Bug] <message>`.
@@ -152,231 +152,86 @@ Use these rules identically in every project:
 - Commit Memory to the current project repository and branch.
 - Push follows the current project's normal authorization and policy. Never auto-push merely because Memory changed.
 
-Examples:
+Examples: `[Bug] prevent duplicate retries`, `[Feature] add export command`, `[Memory] record export decisions`.
 
-```text
-[Bug] prevent duplicate payment retries
-[Feature] add invoice export command
-[Memory] record invoice export decisions
-```
+## Install modes and maintenance
 
-## Codex and Claude Code
+| Mode | Behavior |
+| --- | --- |
+| `Copy` | Most compatible. Rerun with `-Force` after pulling updates. |
+| `Link` | Updates appear immediately. Windows may require Developer Mode or elevation. |
 
-| Capability | Codex | Claude Code |
-| --- | --- | --- |
-| Global rules source | `codex/AGENTS.md` | `RULES.md` |
-| Installed global rules | `<Codex home>/AGENTS.md` | `<Claude home>/CLAUDE.md` |
-| Agent profiles | `codex/agents/*.toml` | `agents/*.md` |
-| Project Memory | `<project-root>/.agent-memory/` | `<project-root>/.agent-memory/` |
-| Automatic loading supplied here | `SessionStart` and `SubagentStart` hooks | Shared rules instruct agents to read the indexes; this repository does not install a Claude hook |
+The installer preserves unrelated agents and hooks. Conflicts stop by default; `-Force` creates timestamped backups and a manifest before replacement. It does not edit Codex `config.toml`.
 
-The orchestrator is the only role that writes Memory. Subagents may read relevant Memory but must report new facts back to the orchestrator instead of modifying `.agent-memory` themselves.
-
-Claude model aliases and effort metadata in `agents/*.md` are Claude Code-specific. Codex profiles stay portable by omitting `model` and `model_reasoning_effort` by default, which makes each subagent inherit the user's selected model and effort. A Codex-supported model or effort can still be overridden per spawn or intentionally configured role when the quality/latency/token tradeoff warrants it; do not copy Claude aliases such as `fable`, `opus`, or `sonnet` into Codex TOML.
-
-Both integrations use the same risk-based workflow: read-only questions are handled directly; a localized low-risk edit uses one stack lead plus focused self-verification; an independent tester is added for meaningful behavioral, regression, network, save-data, security, or critical-UI risk (or when requested); and the planner is reserved for cross-system work. Independent read-heavy advisors may run concurrently, while dependent, write-heavy, or same-file work stays sequential. Delegations include exact scope, expected output, acceptance criteria, relevant Memory, and known rejected hypotheses to avoid repeated repository scans.
-
-## Windows quick start
-
-PowerShell 5.1 works. PowerShell 7 (`pwsh`) is also supported.
-
-### 1. Clone this repository
+Preview an install:
 
 ```powershell
-git clone <repository-url>
-Set-Location .\ai-agent-memory-rules
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
+  -Platform Both -Mode Copy -WhatIf
 ```
 
-### 2. Validate the repository
+Update a Copy installation and validate both platforms:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1
-```
-
-### 3. Install shared integration
-
-For Codex:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Codex -Mode Copy
-```
-
-For Claude Code:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Claude -Mode Copy
-```
-
-For both:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Both -Mode Copy
-```
-
-Installation manages shared rules, agent profiles, and Codex hooks. It never creates, imports, or changes a project's `.agent-memory` directory.
-
-### 4. Initialize one project
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\initialize-memory.ps1 -ProjectPath "C:\path\to\your-project"
-```
-
-The script resolves the nearest Git root, or uses the requested directory when it is not in a Git repository. It creates only missing files and never overwrites existing Memory. It warns when `.agent-memory` is ignored by Git.
-
-Review the new files, then commit them to that project:
-
-```powershell
-git -C "C:\path\to\your-project" status --short
-git -C "C:\path\to\your-project" add .agent-memory
-git -C "C:\path\to\your-project" commit -m "[Memory] initialize project memory"
-```
-
-Push only when that project's normal policy authorizes it.
-
-### 5. Validate one project's Memory
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -ProjectPath "C:\path\to\your-project"
-```
-
-This checks required indexes and directories, archive headings, readiness markers, and the one-to-one mappings between indexes and `work/`, `archive/`, and `analysis/` detail files.
-
-## Install modes
-
-| Mode | Behavior | Tradeoff |
-| --- | --- | --- |
-| `Copy` | Copies managed files into the tool's user configuration directory | Most compatible; rerun with `-Force` after pulling shared-rule updates |
-| `Link` | Creates one symbolic link per managed file | Repository updates are visible immediately; Windows may require Developer Mode or elevation |
-
-The installer preserves unrelated custom agents and hook groups. Conflicting managed targets stop installation by default. `-Force` creates timestamped backups and a manifest before replacement. It does not replace an entire agents directory and does not edit Codex `config.toml`.
-
-Preview safely:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Codex -Mode Copy -WhatIf
-```
-
-After installing Codex hooks, open `/hooks` and review the two lifecycle entries.
-
-## Daily use
-
-Start Codex or Claude Code inside the project. Useful prompts include:
-
-```text
-Summarize open and blocked work from this project's .agent-memory.
-```
-
-```text
-Check project_archive.md before investigating this regression.
-```
-
-```text
-Record the confirmed root cause for PROJ-021 and report the Memory changes separately from code changes.
-```
-
-When `.agent-memory` is missing, the Codex hook continues successfully with shared rules and prints the initialization command. It never reads a central or another project's Memory directory.
-
-## One-time migration from an older external directory
-
-Migration is explicit and never runs during installation or session startup. Point the command at a generic legacy Memory directory and the destination project:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\migrate-memory.ps1 `
-  -LegacyMemoryPath "D:\old-memory\example-project" `
-  -ProjectPath "C:\path\to\your-project" `
-  -WhatIf
-```
-
-Remove `-WhatIf` after reviewing the preview. The migration copies every top-level Markdown file plus the `work/`, `archive/`, and `analysis/` detail directories; it ignores top-level non-Markdown files and unknown directories. It refuses a non-empty destination, rejects links or paths that escape the selected roots, preserves the source, and never pushes anything.
-
-After migration:
-
-1. Run `validate.ps1 -ProjectPath <project>`.
-2. Review `git status` and the Memory content.
-3. Commit only `.agent-memory/**` with `[Memory] <message>`.
-4. Keep or archive the old source yourself after verifying the project-local copy; this tool never removes it.
-
-## Update and uninstall
-
-Pull repository updates. Link installs receive file changes automatically after a new session. For Copy mode, rerun:
-
-```powershell
+git pull
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Platform Both -Mode Copy -Force
-```
-
-Validate installed integration:
-
-```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Installed -Platform Codex
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -Installed -Platform Claude
 ```
 
-Uninstall managed integration:
+Preview and run uninstall:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -Platform Both -WhatIf
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1 -Platform Both
 ```
 
-Uninstall removes only installer-owned global rules, agent profiles, and managed Codex hook entries. It never inspects, deletes, or changes `.agent-memory` in any project.
+Uninstall removes only installer-owned integration files and hook entries. It never changes project-local `.agent-memory` directories. If a managed file was modified, uninstall stops unless `-Force` is supplied; `-Force` backs it up before removal.
 
-## Customize
+## One-time migration
 
-- Edit shared behavior in `codex/AGENTS.md` and `RULES.md` together.
-- Keep the commit convention identical in both files and this README.
-- Customize agent responsibilities in both `codex/agents/` and `agents/`.
-- Customize `templates/memory/` before initializing future projects.
-- Put project-specific requirements in that project's instructions and `.agent-memory/user_and_feedback.md`, not in the public shared template.
+Migration from an older external Memory directory is explicit and never runs during installation or startup. Preview it first:
 
-## Security and privacy
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\migrate-memory.ps1 `
+  -LegacyMemoryPath "<path-to-legacy-memory>" `
+  -ProjectPath "<path-to-project>" `
+  -WhatIf
+```
 
-- Treat all four loaded indexes as model-visible context. The Codex hook can include them in model requests under your Codex or ChatGPT account and workspace data controls.
-- Storing `.agent-memory` locally or in a private Git repository does not mean loaded index content remains only on the device.
-- Committing `.agent-memory` makes it visible to everyone who can read the current project repository and to any downstream mirror, CI job, backup, or fork allowed by that repository.
-- Never record credentials, tokens, private keys, regulated personal data, customer secrets, or sensitive production values.
-- The loader reads only four exact filenames, refuses reparse-point indexes, and caps injected output.
-- The installer does not edit Codex `config.toml`, does not silently overwrite conflicts, and preserves unrelated hooks and agents.
+After reviewing the preview, rerun without `-WhatIf`. Migration refuses a non-empty destination, preserves the source, and never commits or pushes. Validate the result afterward:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\validate.ps1 -ProjectPath "<path-to-project>"
+```
+
+## Privacy and security
+
+- The four indexes loaded by the Codex hook become model-visible context and are handled under your Codex or ChatGPT data controls. Local or private storage does not mean loaded content stays on the device.
+- A committed `.agent-memory` is visible to everyone and every mirror, CI job, backup, or fork that can read the project repository.
+- Never store credentials, private keys, tokens, regulated personal data, customer secrets, or sensitive production values in Memory.
+- Projects whose policy forbids committing Memory may add `/.agent-memory/` to the project's `.gitignore` before the first Memory commit:
+
+    ```gitignore
+    /.agent-memory/
+    ```
+
+    Ignoring Memory gives up branch and clone portability.
+- The loader rejects linked or reparse-point indexes and never falls back to another project's or a central Memory directory.
 
 ## Troubleshooting
 
-### Link mode is unavailable
+- **Link mode fails:** enable Windows Developer Mode, use an elevated terminal, or choose `-Mode Copy`.
+- **An existing file blocks install:** compare it first; use `-Force` only when replacement and backup are intentional.
+- **Codex does not load Memory:** check `/hooks`, confirm the working directory is inside the project, then run `validate.ps1 -ProjectPath <path>`.
+- **Memory is missing on this branch:** merge, rebase, or cherry-pick the relevant `[Memory]` commit.
+- **Context is truncated:** shorten the four indexes and move evidence into detail files.
 
-Enable Windows Developer Mode, run an elevated terminal, or use `-Mode Copy`. Link support is tested before managed files are changed.
-
-### Installation stops on an existing file
-
-Compare the existing target with this repository. Use `-Force` only when replacement is intentional; the installer creates a timestamped backup and manifest first.
-
-### Codex does not load Memory
-
-1. Run `/hooks` and confirm both lifecycle hooks are trusted and enabled.
-2. Confirm the session working directory is inside the intended project.
-3. Confirm `<project-root>/.agent-memory/` exists.
-4. Run `validate.ps1 -ProjectPath <project>`.
-5. Start or resume a session after trusting changed hook content.
-
-### Memory exists on another branch but not this one
-
-Memory follows Git. Merge, rebase, or cherry-pick the appropriate `[Memory]` commit into the current branch, then resolve any index conflicts carefully.
-
-### The hook reports a reparse-point error
-
-Replace the linked index or linked `.agent-memory` directory with real files inside the project. The loader intentionally refuses links to prevent an index from escaping the project.
-
-### Memory output was truncated
-
-Keep the four indexes concise and move evidence into `work/`, `archive/`, or `analysis/` detail files.
-
-### Copy mode still shows old rules
-
-Rerun `install.ps1 -Mode Copy -Force`, review the backup, then start a new session. Link mode usually needs only a new session after pulling changes.
-
-## Official references
+## References and license
 
 - [Codex custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
-- [Codex subagents and custom agent files](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 - [Codex lifecycle hooks](https://learn.chatgpt.com/docs/hooks)
-- [Codex configuration overview](https://learn.chatgpt.com/docs/configuration)
-
-## License
+- [Claude Code memory](https://code.claude.com/docs/en/memory)
 
 Released under the [MIT License](LICENSE).
