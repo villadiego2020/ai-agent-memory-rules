@@ -21,9 +21,9 @@ Installer นี้ไม่สร้างหรือ migrate Memory ให้
 
 | Agent | Callsign | ทำอะไร | Model | สิทธิ์แก้โค้ด |
 |---|---|---|---|---|
-| `unity-expert` | Forge | Lead โปรเจกต์ Unity — gameplay, performance, editor tools, asset pipeline | opus (xhigh) | แก้ได้เต็ม |
+| `unity-expert` | Forge | Lead โปรเจกต์ Unity — วิเคราะห์โค้ด, gameplay, performance, editor tools และ asset pipeline; ใช้ Clean Code, event-based/OOP, config และ design pattern เท่าที่จำเป็น | opus (xhigh) | แก้ได้เต็ม |
 | `web-expert` | Nova | Lead โปรเจกต์เว็บ ทุกภาษา/framework — frontend, backend, API, database | opus (xhigh) | แก้ได้เต็ม |
-| `system-tester` | Sentinel | ออกแบบ+รัน test เว็บ (Vitest/Playwright) และเกม (Unity Test Framework), หา edge case | opus (high) | เฉพาะไฟล์ test |
+| `system-tester` | Sentinel | ออกแบบ+รัน test เว็บ/เกมตามความเสี่ยง โดยอธิบายทุก test ว่าป้องกันอะไร ได้หลักฐานอะไร และผ่าน/ไม่ผ่านแปลว่าอะไร | opus (high) | เฉพาะไฟล์ test |
 
 **ที่ปรึกษา — คิด/ออกแบบอย่างเดียว** ส่ง design ให้ lead ลงมือ ไม่แตะโค้ดเอง
 
@@ -31,9 +31,9 @@ Installer นี้ไม่สร้างหรือ migrate Memory ให้
 |---|---|---|---|
 | `system-planner` | Atlas | แตกงานใหญ่เป็นเฟส วิเคราะห์ stack กำหนดว่า expert ตัวไหนรับส่วนไหน | fable (xhigh) |
 | `backend-architect` | Bedrock | โครงฝั่ง server + data layer ตั้งแต่เส้น API ขึ้นไป — service architecture, API contract, schema/index/query, migration, cache, queue, auth | opus (xhigh) |
-| `network-expert` | Pulse | transport/protocol/sync/latency บนสายระหว่างเครื่อง — TCP/UDP/WebSocket/HTTP, multiplayer netcode | opus (xhigh) |
-| `game-architect` | Blueprint | โครงสร้างระบบภายในเกมฝั่ง client — design pattern, data flow, save system, scene/state management | opus (xhigh) |
-| `uxui-expert` | Prism | UX/UI ทั้งเว็บและเกม — direction, layout, สี, ฟอนต์, motion, game HUD/menu | opus (high) |
+| `network-expert` | Pulse | network foundation, transport/protocol, authority, sync, prediction/reconciliation, latency, bandwidth/memory/allocation และข้อแลกเปลี่ยน Photon Fusion/FishNet/Mirror | opus (xhigh) |
+| `game-architect` | Blueprint | โครงสร้างระบบเกม — ownership/data flow, save/scene/state, pattern และ config ที่ใช้ร่วมกันง่ายโดยไม่แตก abstraction เกินจำเป็น | opus (xhigh) |
+| `uxui-expert` | Prism | UX/UI เว็บและเกม — ตรวจความตรงสเปก, visual hierarchy, layout, สี, ฟอนต์, motion, state, accessibility และ HUD/menu ที่สวยและใช้งานได้จริง | opus (high) |
 | `project-manager` | Compass | ตรวจ+รายงานอย่างเดียว — audit memory/index, drift Jira↔memory, status digest ข้ามโปรเจกต์, เสนอลำดับหยิบการ์ด | sonnet (high) |
 
 **ทีม 3D** — ทำงานใน Blender ผ่าน Blender MCP ตามลำดับ organic เริ่ม Clay / hard-surface เริ่ม Chisel
@@ -54,6 +54,8 @@ Installer นี้ไม่สร้างหรือ migrate Memory ให้
 
 alias `fable`/`opus`/`sonnet` ชี้รุ่นล่าสุดของแต่ละ tier เสมอ (ตอนนี้ = Fable 5 / Opus 5 / Sonnet 5) ออกรุ่นใหม่ไม่ต้องไล่แก้ไฟล์ · **เปลี่ยน tier ของใครต้องบอก user ก่อน ห้ามปรับเงียบๆ**
 
+> ตาราง model ส่วนนี้ใช้กับ **Claude Code เท่านั้น**. ฝั่ง Codex ไม่ใช้ alias `fable`/`opus`/`sonnet`; โปรไฟล์ TOML ควรปล่อยให้ inherit model/effort ที่ user เลือกเป็นค่าเริ่มต้น และ override ด้วย model identifier ที่ Codex รองรับเฉพาะเมื่อมีเหตุผลด้านคุณภาพ เวลา และ token ชัดเจน
+
 ## กติกาหลัก: Lead-by-Stack
 
 - **พระเอกคือ lead ที่ตรงกับ stack ของโปรเจกต์** — ที่ปรึกษาออกแบบแล้วส่งต่อ ไม่ลงมือเอง
@@ -73,13 +75,17 @@ alias `fable`/`opus`/`sonnet` ชี้รุ่นล่าสุดของ�
 
 ### Subagent — ใช้เป็นค่าเริ่มต้นเสมอ
 
-เรียกกี่ตัวขึ้นกับขนาดงาน (แต่ห้ามใช้ขนาดงานมาตัดสินว่าจะ spawn หรือไม่ spawn):
+เรียกกี่ตัวตามความเสี่ยงจริง โดยยังคงกฎว่าการแก้ไฟล์โปรเจกต์ต้องผ่าน lead ตาม stack:
 
-- **แก้จุดเดียว / บั๊กชัด** → lead ตัวเดียวพอ
-- **ฟีเจอร์ใหม่ / แตะหลายระบบ** → Atlas วางแผน → lead + ที่ปรึกษาเฉพาะด้านที่งานแตะจริง → Sentinel ปิดท้าย
+- **ตอบ/อธิบาย/วิเคราะห์แบบ read-only** → orchestrator ทำตรงได้ ไม่ต้อง spawn เพื่อสรุปซ้ำ
+- **แก้จุดเดียวและความเสี่ยงต่ำ** → lead ตัวเดียว + focused self-verification ตาม acceptance criteria
+- **behavior/regression/network/save/security/critical UI มีความเสี่ยง หรือ user ขอ test** → lead → Sentinel; Sentinel ต้องบอกวัตถุประสงค์ ความเสี่ยง และหลักฐานของแต่ละ test
+- **ฟีเจอร์ข้ามหลายระบบ/รื้อระบบ** → Atlas วางแผน → lead + ที่ปรึกษาเฉพาะด้านที่งานแตะจริง → Sentinel เฉพาะเมื่อเข้าเกณฑ์ความเสี่ยง
 - **งาน 3D** → เรียกทีละ stage ตามลำดับ pipeline โดยมี approval gate จาก user คั่นทุก stage
 
-ตอน spawn ทุกครั้ง: `description` ขึ้นต้นด้วย callsign (`Forge: fix creep pathing`) และแนบ "บริบทโปรเจกต์" ที่คัดจาก `<project-root>/.agent-memory/` เฉพาะ fact ที่เกี่ยวกับงานนั้น · subagent อ่าน Memory ได้อย่างเดียวและรายงาน fact ใหม่กลับ orchestrator
+Advisor ที่อ่านอย่างเดียวและไม่พึ่งผลกันสามารถรันขนานได้ ส่วนงานเขียน งานมี dependency หรือแตะไฟล์เดียวกันให้รันตามลำดับ
+
+ตอน spawn ทุกครั้ง: `description` ขึ้นต้นด้วย callsign (`Forge: fix creep pathing`) และระบุไฟล์/โมดูลในขอบเขต หน้าที่ ผลลัพธ์ที่ต้องส่ง acceptance criteria คำสั่งตรวจขั้นต่ำ รวมทั้ง "บริบทโปรเจกต์" และ rejected hypothesis ที่คัดจาก `<project-root>/.agent-memory/` เฉพาะส่วนที่เกี่ยวข้อง เพื่อไม่ให้แต่ละ agent สแกนรีโปซ้ำ · subagent อ่าน Memory ได้อย่างเดียวและรายงาน fact ใหม่กลับ orchestrator
 
 ### Agent Team — ต้องผ่านด่าน ห้ามเปิดเอง
 

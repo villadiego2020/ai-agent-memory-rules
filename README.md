@@ -172,6 +172,10 @@ Examples:
 
 The orchestrator is the only role that writes Memory. Subagents may read relevant Memory but must report new facts back to the orchestrator instead of modifying `.agent-memory` themselves.
 
+Claude model aliases and effort metadata in `agents/*.md` are Claude Code-specific. Codex profiles stay portable by omitting `model` and `model_reasoning_effort` by default, which makes each subagent inherit the user's selected model and effort. A Codex-supported model or effort can still be overridden per spawn or intentionally configured role when the quality/latency/token tradeoff warrants it; do not copy Claude aliases such as `fable`, `opus`, or `sonnet` into Codex TOML.
+
+Both integrations use the same risk-based workflow: read-only questions are handled directly; a localized low-risk edit uses one stack lead plus focused self-verification; an independent tester is added for meaningful behavioral, regression, network, save-data, security, or critical-UI risk (or when requested); and the planner is reserved for cross-system work. Independent read-heavy advisors may run concurrently, while dependent, write-heavy, or same-file work stays sequential. Delegations include exact scope, expected output, acceptance criteria, relevant Memory, and known rejected hypotheses to avoid repeated repository scans.
+
 ## Windows quick start
 
 PowerShell 5.1 works. PowerShell 7 (`pwsh`) is also supported.

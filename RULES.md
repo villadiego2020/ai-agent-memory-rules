@@ -22,21 +22,32 @@
 
 | บริบทที่ user พูดถึง | ที่ปรึกษา (คิด/ออกแบบ — อ่านอย่างเดียว) | Lead (ลงมือแก้โค้ด) |
 |---|---|---|
-| UI/layout/สี/ฟอนต์ (เว็บ) | `uxui-expert` | `web-expert` |
-| UI/HUD/menu ของเกม | `uxui-expert` + `game-architect` | `unity-expert` |
+| UI/layout/สี/ฟอนต์ (เว็บ) | `uxui-expert` เมื่อมีโจทย์ด้านความตรงสเปก, visual hierarchy, interaction state หรือ accessibility | `web-expert` |
+| UI/HUD/menu ของเกม | `uxui-expert` ด้านความตรงสเปก/ความสวย/การใช้งาน + `game-architect` เฉพาะเมื่อแตะ flow หรือโครงระบบ | `unity-expert` |
 | ฟีเจอร์ใหม่ / รื้อระบบ (งานใหญ่) | `system-planner` นำ แตกงาน+มอบหมาย | lead ตาม stack |
-| โครงสร้างระบบเกม, save, scene, pattern | `game-architect` | `unity-expert` |
-| network, sync, multiplayer, API ระหว่างเครื่อง | `network-expert` | lead ตาม stack |
+| โครงสร้างระบบเกม, save, scene, pattern | `game-architect` ตรวจ ownership/data flow/pattern/config และคุมไม่ให้แยกชั้นเกินจำเป็น | `unity-expert` วิเคราะห์โค้ดและลงมือด้วย Clean Code + event-based/OOP เท่าที่จำเป็น |
+| network, sync, multiplayer, API ระหว่างเครื่อง | `network-expert` วิเคราะห์ foundation, authority, prediction/reconciliation, bandwidth, allocation, lifecycle และข้อแลกเปลี่ยนของ Photon Fusion/FishNet/Mirror | lead ตาม stack |
 | โครงสร้าง backend/server, database, schema, query ช้า, migration, cache, auth | `backend-architect` | lead ตาม stack (เว็บ → `web-expert`) |
-| งานในโปรเจกต์เว็บทั่วไป | (ตามด้านที่แตะ) | `web-expert` → `system-tester` ตรวจ |
-| งานในโปรเจกต์ Unity ทั่วไป | (ตามด้านที่แตะ) | `unity-expert` → `system-tester` ตรวจ |
-| หลัง implement เสร็จทุกครั้ง | — | `system-tester` |
+| งานในโปรเจกต์เว็บทั่วไป | (ตามด้านที่แตะ) | `web-expert`; ส่ง `system-tester` เมื่องานมีความเสี่ยงตามเกณฑ์ด้านล่าง |
+| งานในโปรเจกต์ Unity ทั่วไป | (ตามด้านที่แตะ) | `unity-expert`; ส่ง `system-tester` เมื่องานมีความเสี่ยงตามเกณฑ์ด้านล่าง |
+| behavioral/regression/network/save/security/critical UI ที่มีความเสี่ยงจริง หรือ user ขอ test | — | `system-tester` ออกแบบ test โดยบอกวัตถุประสงค์ ความเสี่ยงที่จับได้ และหลักฐานผ่าน/ไม่ผ่าน |
 | ขอสถานะ / audit memory / จัด backlog | `project-manager` (ตรวจ+รายงาน) | orchestrator แก้ไฟล์ memory ตามรายงาน |
 
-**ขนาดทีมตามขนาดงาน** (เลือกได้ว่าจะเรียกกี่ตัว — แต่ **ห้ามเอามาอ้างว่าไม่ spawn lead**):
+### Fast path ตามความเสี่ยง — ลดเวลางานเล็ก
 
-- แก้จุดเดียว/บั๊กชัด → lead ตัวเดียวพอ
-- ฟีเจอร์ใหม่/แตะหลายระบบ → หัวหน้าวางแผนก่อน แล้ว lead + ที่ปรึกษา**เฉพาะด้านที่งานแตะจริง** + ผู้ตรวจปิดท้าย — ไม่เรียกที่ปรึกษาครบทีมถ้างานไม่แตะด้านนั้น
+เลือก workflow ที่เบาที่สุดซึ่งยังคุมความเสี่ยงจริงได้ โดยกฎ lead-by-stack ยังเหมือนเดิมเมื่อมีการแก้ไฟล์โปรเจกต์:
+
+- **ตอบ/อธิบาย/รายงานสถานะ/วิเคราะห์แบบ read-only** → orchestrator อ่านหลักฐานแล้วตอบเอง ไม่ spawn agent เพียงเพื่อสรุปสิ่งที่มีอยู่แล้ว
+- **แก้เฉพาะจุดและความเสี่ยงต่ำ** → lead ตาม stack เพียง 1 ตัว พร้อม focused self-verification ตาม acceptance criteria ที่ระบุไว้; ไม่บังคับเรียก tester แยก
+- **มีความเสี่ยงต่อ behavior หรือ regression อย่างมีนัยสำคัญ** → lead แล้วให้ `system-tester` ตรวจแยก โดยบังคับสำหรับ network sync, save compatibility, security boundary, critical UI flow, refactor กว้าง หรือเมื่อ user ขอ
+- **ฟีเจอร์ข้ามหลายระบบ/รื้อสถาปัตยกรรม** → `system-planner` ก่อน แล้วเรียกเฉพาะ advisor/lead ที่แผนระบุ; ห้ามเรียก planner สำหรับงานเล็กที่ขอบเขตชัด
+
+Advisor ที่เป็นงานอ่านและเป็นอิสระต่อกันให้รันขนานได้เมื่อปลอดภัย ส่วนงานเขียน งานที่มี dependency หรืองานแตะไฟล์เดียวกันให้ทำตามลำดับ ทุก prompt ที่ delegate ต้องระบุไฟล์/โมดูลในขอบเขต คำถามหรือหน้าที่ ผลลัพธ์ที่ต้องส่ง acceptance criteria คำสั่งตรวจขั้นต่ำ fact จาก Memory ที่เกี่ยวข้อง และ rejected hypothesis ที่ทราบแล้ว เพื่อไม่ให้แต่ละ agent สแกนรีโปซ้ำ
+
+**ขนาดทีมตามขนาดงาน** (เลือกได้ว่าจะเรียกกี่ตัว — แต่ **ห้ามเอามาอ้างว่าไม่ spawn lead เมื่อมีการแก้ไฟล์โปรเจกต์**):
+
+- แก้จุดเดียว/บั๊กชัด → lead ตัวเดียวพอ และให้ lead ตรวจเฉพาะจุดเอง
+- ฟีเจอร์ใหม่/แตะหลายระบบ → หัวหน้าวางแผนก่อน แล้ว lead + ที่ปรึกษา**เฉพาะด้านที่งานแตะจริง**; ผู้ตรวจปิดท้ายเฉพาะเมื่อเข้าเกณฑ์ความเสี่ยงด้านบน
 
 - **spawn agent ทุกครั้ง: `description` ควรขึ้นต้นด้วยชื่อ/callsign ของ agent นั้น** เช่น `Nova: fix layout bug`, `Atlas: plan feature X` — แผง background task ส่วนใหญ่โชว์แค่ description ถ้าไม่ใส่ชื่อจะแยกไม่ออกว่าตัวไหนเป็นตัวไหน
 - ทีมงานเฉพาะทาง (เช่น pipeline 3D, pipeline audio) ที่มีหลาย stage ต่อกัน ให้ตั้ง **approval gate**: จบแต่ละ stage ต้องเอาผลลัพธ์ให้ user ดูและถาม (โอเค/แก้/เพิ่ม) ก่อนเรียก stage ถัดไปเสมอ ห้ามปล่อยไหลอัตโนมัติ — งานคาบเกี่ยวระหว่าง stage ต้องมีเจ้าของชัดเจนว่าใครทำอะไร
@@ -93,7 +104,7 @@ Default ของระบบ = **turn-based** (user พิมพ์ → ทำ 
 ### Resource bounds
 
 - **เปิด loop ที่รันตามเวลา (scheduled/cron) ต้องให้ user confirm ก่อนทุกครั้ง** — มันเผา token ตอนที่ไม่มีใครดู เหมือนกฎ TEAM ที่ต้องขออนุญาต · orchestrator ห้ามเปิดเอง
-- tier model ต่อ agent ตั้งไว้สำหรับงาน on-demand ที่มีคนเฝ้า — **ห้ามยกทั้งทีมเข้า scheduled loop โดยไม่คิดเรื่องราคา** งานรูทีนในลูปให้ใช้สคริปต์ก่อน แล้วเรียก agent เฉพาะขั้นที่ต้องตัดสินใจ · เปลี่ยน tier ของ agent ต้องบอก user ก่อนเสมอ ห้ามปรับเงียบๆ
+- tier/model metadata ใน `agents/*.md` เป็นการตั้งค่าเฉพาะ Claude Code และไม่ควรถูกคัดลอกเป็น alias ให้ Codex — **ห้ามยกทั้งทีมเข้า scheduled loop โดยไม่คิดเรื่องราคา** งานรูทีนในลูปให้ใช้สคริปต์ก่อน แล้วเรียก agent เฉพาะขั้นที่ต้องตัดสินใจ · เปลี่ยน tier ของ agent ต้องบอก user ก่อนเสมอ ห้ามปรับเงียบๆ
 - ความถี่ให้ต่ำสุดที่ยังทัน — อย่า poll ถี่กว่าที่ของจริงเปลี่ยน
 
 ---

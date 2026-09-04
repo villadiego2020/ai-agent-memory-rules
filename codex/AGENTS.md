@@ -34,14 +34,14 @@ The orchestrator coordinates work and may inspect files, search, diagnose, and r
 
 | Work | Advisor | Implementation lead |
 | --- | --- | --- |
-| Web UI, layout, typography, accessibility | `uxui-expert` | `web-expert` |
+| Web UI, layout, typography, accessibility | `uxui-expert` for specification fidelity, visual hierarchy, interaction states, and accessibility when design judgment is material | `web-expert` |
 | Web application or API work | As needed | `web-expert` |
 | Backend architecture, data models, migrations, caching, authentication | `backend-architect` | Stack-appropriate lead |
-| Network protocols, synchronization, realtime transport | `network-expert` | Stack-appropriate lead |
-| Unity gameplay or tooling | As needed | `unity-expert` |
-| Game systems, saves, scenes, state management | `game-architect` | `unity-expert` |
+| Network protocols, synchronization, realtime transport | `network-expert` for transport fundamentals, authority, prediction/reconciliation, bandwidth, allocation, lifecycle, and framework-specific tradeoffs including Photon Fusion, FishNet, and Mirror | Stack-appropriate lead |
+| Unity gameplay or tooling | As needed | `unity-expert`, responsible for scoped code analysis, Clean Code, proportionate event-based/OOP boundaries, reusable configuration, and suitable patterns |
+| Game systems, saves, scenes, state management | `game-architect` for ownership, data flow, pattern choice, configuration boundaries, and complexity control | `unity-expert` |
 | Large new feature or cross-system redesign | `system-planner` first | Stack-appropriate lead |
-| Implementation verification | None | `system-tester` after implementation |
+| Meaningful behavioral, regression, network, save-data, security, or critical-UI risk; or explicit user request | None | `system-tester` after implementation |
 | Memory health or backlog status | `project-manager` | Orchestrator updates Memory |
 | Organic 3D asset | `3d-sculptor`, then `3d-modeller`, `3d-rigger`, `3d-animator` | Current pipeline role |
 | Hard-surface 3D asset | `3d-modeller`, then `3d-rigger`, `3d-animator` | Current pipeline role |
@@ -49,6 +49,17 @@ The orchestrator coordinates work and may inspect files, search, diagnose, and r
 Advisors, architects, planners, and the project manager are read-only. They return decisions and evidence to the implementation lead. The system tester may edit test files only. All subagents treat `.agent-memory` as read-only and report durable facts to the orchestrator. The orchestrator is the only role that writes Memory. Do not use every advisor by default; involve only roles relevant to the task.
 
 For sequential creative pipelines, show the user the output at the end of each stage and wait for approval before starting the next stage.
+
+### Risk-based fast path
+
+Choose the lightest workflow that still controls the actual risk:
+
+- **Read-only answer, explanation, status, or diagnosis:** the orchestrator inspects and answers directly. Do not spawn an agent merely to restate evidence already available.
+- **Localized, low-risk edit:** use one stack-appropriate implementation lead. That lead performs focused self-verification against explicit acceptance criteria; an independent tester is optional.
+- **Meaningful behavioral or regression risk:** use the stack lead, then `system-tester`. Independent testing is required for network synchronization, save-data compatibility, security boundaries, critical UI flows, broad refactors, or when the user requests it.
+- **Cross-system feature or redesign:** call `system-planner` first, then only the advisors and leads named by the plan. Do not call the planner for a small, bounded change.
+
+Run independent, read-heavy advisors concurrently when their scopes do not depend on one another. Keep write-heavy, dependent, or same-file work sequential. Every delegation must name exact files or modules, the question or responsibility, expected output, acceptance criteria, relevant Memory facts, and known rejected hypotheses so the agent does not rescan the repository.
 
 ## Subagents and teams
 
@@ -59,10 +70,13 @@ Propose a team only when agents must exchange or challenge findings during the w
 When delegating implementation:
 
 - Assign concrete file or module ownership.
+- State explicit acceptance criteria and the smallest relevant verification commands.
 - Tell every worker that other changes may exist and must not be reverted.
 - Include relevant project Memory facts and known rejected hypotheses.
 - Wait for the delegated result instead of duplicating the same work.
-- Have the implementation lead hand the completed change to `system-tester` for focused verification.
+- Use `system-tester` according to the risk-based fast path, not automatically after every edit.
+
+Codex custom-agent profiles should normally omit `model` and `model_reasoning_effort` so they inherit the user's current model and effort. Override either value only for a specific task or intentionally configured role when the quality, latency, and token tradeoff justifies it. Use model identifiers supported by Codex; do not copy Claude-only aliases such as `fable`, `opus`, or `sonnet` into Codex profiles.
 
 ## Engineering standards
 
