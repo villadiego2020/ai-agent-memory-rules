@@ -10,7 +10,11 @@ $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ai-agent-memory-ru
 $projectRoot = Join-Path $temporaryRoot 'Project with spaces'
 $memoryRoot = Join-Path $projectRoot '.agent-memory'
 $archiveIndexPath = Join-Path $memoryRoot 'project_archive.md'
+$annualArchiveIndexPath = Join-Path $memoryRoot 'project_archive_2025.md'
 $archiveDetailPath = Join-Path $memoryRoot 'archive/PROJ-001.md'
+$secondArchiveDetailPath = Join-Path $memoryRoot 'archive/PROJ-002.md'
+$outsideAnnualIndexPath = Join-Path $temporaryRoot 'outside-annual-index.md'
+$outsideAnnualDirectory = Join-Path $temporaryRoot 'outside-annual-directory'
 
 function Assert-True {
     param([Parameter(Mandatory)][bool]$Condition, [Parameter(Mandatory)][string]$Message)
@@ -61,6 +65,12 @@ $FeatureEntry
     [System.IO.File]::WriteAllText($archiveIndexPath, $content, [System.Text.UTF8Encoding]::new($false))
 }
 
+function Set-AnnualArchiveIndex {
+    param([Parameter(Mandatory)][string]$Entry)
+
+    [System.IO.File]::WriteAllText($annualArchiveIndexPath, $Entry, [System.Text.UTF8Encoding]::new($false))
+}
+
 try {
     New-Item -ItemType Directory -Path $projectRoot -Force | Out-Null
     & git -C $projectRoot init --quiet
@@ -91,6 +101,53 @@ try {
     $missingTarget = Invoke-Validator
     Assert-True -Condition ($missingTarget.ExitCode -ne 0) -Message 'A link whose target file is absent should fail.'
     Assert-True -Condition ($missingTarget.Output.Contains('links to a missing file: archive/PROJ-999.md')) -Message "Missing-target failure was not specific. Output: $($missingTarget.Output)"
+
+    Set-ArchiveIndex -FeatureEntry '(None)'
+    Set-AnnualArchiveIndex -Entry '- PROJ-001 historical entry -> [detail](archive/PROJ-001.md)'
+    $splitAnnualIndex = Invoke-Validator
+    Assert-True -Condition ($splitAnnualIndex.ExitCode -eq 0) -Message "A detail indexed only in a top-level annual archive index should pass. Output: $($splitAnnualIndex.Output)"
+
+    [System.IO.File]::WriteAllText($secondArchiveDetailPath, '# PROJ-002 completed work', [System.Text.UTF8Encoding]::new($false))
+    Set-ArchiveIndex -FeatureEntry "- PROJ-002 current entry -> [detail](archive/PROJ-002.md)`n- Historical context: [PROJ-001](archive/PROJ-001.md)"
+    $combinedIndexes = Invoke-Validator
+    Assert-True -Condition ($combinedIndexes.ExitCode -eq 0) -Message "Current and annual archive indexes should jointly own distinct details while allowing contextual cross-links. Output: $($combinedIndexes.Output)"
+
+    Set-ArchiveIndex -FeatureEntry "- PROJ-002 current entry -> [detail](archive/PROJ-002.md)`n- PROJ-001 current duplicate -> [detail](archive/PROJ-001.md)"
+    $duplicateAcrossIndexes = Invoke-Validator
+    Assert-True -Condition ($duplicateAcrossIndexes.ExitCode -ne 0) -Message 'Duplicate primary detail links across current and annual indexes should fail.'
+    Assert-True -Condition ($duplicateAcrossIndexes.Output.Contains('contains 2 primary [detail] links')) -Message "Cross-index duplicate failure was not specific. Output: $($duplicateAcrossIndexes.Output)"
+
+    Set-ArchiveIndex -FeatureEntry "- PROJ-001 current entry -> [detail](archive/PROJ-001.md)`n- PROJ-002 current entry -> [detail](archive/PROJ-002.md)"
+    [System.IO.File]::Delete($annualArchiveIndexPath)
+    [System.IO.File]::WriteAllText($outsideAnnualIndexPath, '- outside content', [System.Text.UTF8Encoding]::new($false))
+    $annualReparseCreated = $false
+    $annualReparseDiagnostic = 'Annual project archive index cannot be a symbolic link or reparse point'
+    try {
+        New-Item -ItemType SymbolicLink -Path $annualArchiveIndexPath -Target $outsideAnnualIndexPath -ErrorAction Stop | Out-Null
+        $annualReparseCreated = $true
+    } catch {
+        New-Item -ItemType Directory -Path $outsideAnnualDirectory -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $outsideAnnualDirectory 'outside.md'), '- outside content', [System.Text.UTF8Encoding]::new($false))
+        New-Item -ItemType Junction -Path $annualArchiveIndexPath -Target $outsideAnnualDirectory -ErrorAction Stop | Out-Null
+        $annualReparseCreated = $true
+        $annualReparseDiagnostic = 'Annual project archive index is not a file'
+    }
+    if ($annualReparseCreated) {
+        try {
+            $annualReparse = Invoke-Validator
+            Assert-True -Condition ($annualReparse.ExitCode -ne 0) -Message 'A reparse-point annual archive index should fail.'
+            Assert-True -Condition ($annualReparse.Output.Contains($annualReparseDiagnostic)) -Message "Annual reparse failure was not specific. Output: $($annualReparse.Output)"
+        } finally {
+            $annualReparseItem = Get-Item -LiteralPath $annualArchiveIndexPath -Force -ErrorAction SilentlyContinue
+            if ($annualReparseItem) {
+                if ($annualReparseItem.PSIsContainer) {
+                    [System.IO.Directory]::Delete($annualArchiveIndexPath)
+                } else {
+                    [System.IO.File]::Delete($annualArchiveIndexPath)
+                }
+            }
+        }
+    }
 
     Write-Host 'Validator index-link regression tests passed.'
 } finally {

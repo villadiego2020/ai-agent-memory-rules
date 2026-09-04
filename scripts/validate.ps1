@@ -39,28 +39,37 @@ function Test-RequiredPath {
 
 function Test-MemoryIndexMapping {
     param(
-        [Parameter(Mandatory)][string]$IndexPath,
+        [Parameter(Mandatory)][string[]]$IndexPaths,
+        [Parameter(Mandatory)][string]$IndexDisplayName,
         [Parameter(Mandatory)][string]$DetailDirectory,
         [Parameter(Mandatory)][string]$RelativeDirectory
     )
 
-    if (-not (Test-Path -LiteralPath $IndexPath -PathType Leaf)) {
+    $existingIndexPaths = @($IndexPaths | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
+    if ($existingIndexPaths.Count -eq 0) {
         return
     }
     if (-not (Test-Path -LiteralPath $DetailDirectory -PathType Container)) {
         return
     }
 
-    $indexContent = Get-Content -LiteralPath $IndexPath -Raw
     $escapedDirectory = [regex]::Escape($RelativeDirectory)
     $indexLinks = @(
-        [regex]::Matches($indexContent, "(?i)\[([^\]]+)\]\((?:\./)?$escapedDirectory/([^)]+\.md)\)") |
-            ForEach-Object {
-                [pscustomobject]@{
-                    Label = $_.Groups[1].Value.Trim()
-                    FileName = $_.Groups[2].Value
-                }
+        foreach ($indexPath in $existingIndexPaths) {
+            $indexItem = Get-Item -LiteralPath $indexPath -Force
+            if (($indexItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                continue
             }
+
+            $indexContent = Get-Content -LiteralPath $indexPath -Raw
+            [regex]::Matches($indexContent, "(?i)\[([^\]]+)\]\((?:\./)?$escapedDirectory/([^)]+\.md)\)") |
+                ForEach-Object {
+                    [pscustomobject]@{
+                        Label = $_.Groups[1].Value.Trim()
+                        FileName = $_.Groups[2].Value
+                    }
+                }
+        }
     )
     $detailFileNames = @(
         Get-ChildItem -LiteralPath $DetailDirectory -Filter '*.md' -File |
@@ -69,18 +78,18 @@ function Test-MemoryIndexMapping {
     foreach ($detailFileName in $detailFileNames) {
         $matchingLinks = @($indexLinks | Where-Object { $_.FileName -eq $detailFileName })
         if ($matchingLinks.Count -eq 0) {
-            Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) does not index $RelativeDirectory/$detailFileName. Add one [detail] link."
+            Add-ValidationFailure -Message "$IndexDisplayName does not index $RelativeDirectory/$detailFileName. Add one [detail] link."
             continue
         }
 
         $primaryLinks = @($matchingLinks | Where-Object { $_.Label -eq 'detail' })
         if ($primaryLinks.Count -gt 1) {
-            Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) contains $($primaryLinks.Count) primary [detail] links to $RelativeDirectory/$detailFileName; keep exactly one."
+            Add-ValidationFailure -Message "$IndexDisplayName contains $($primaryLinks.Count) primary [detail] links to $RelativeDirectory/$detailFileName; keep exactly one."
         }
     }
     foreach ($linkedFileName in @($indexLinks | ForEach-Object FileName | Sort-Object -Unique)) {
         if ($linkedFileName -notin $detailFileNames) {
-            Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) links to a missing file: $RelativeDirectory/$linkedFileName"
+            Add-ValidationFailure -Message "$IndexDisplayName links to a missing file: $RelativeDirectory/$linkedFileName"
         }
     }
 }
@@ -317,7 +326,28 @@ if (-not [string]::IsNullOrWhiteSpace($ProjectPath)) {
             $openIndexPath = Join-Path $memoryRoot 'project_open_work.md'
             $archiveIndexPath = Join-Path $memoryRoot 'project_archive.md'
             $workDirectory = Join-Path $memoryRoot 'work'
-            if (Test-Path -LiteralPath $archiveIndexPath -PathType Leaf) {
+            $archiveIndexPaths = @()
+            $currentArchiveIndexItem = Get-Item -LiteralPath $archiveIndexPath -Force -ErrorAction SilentlyContinue
+            if ($currentArchiveIndexItem -and -not (($currentArchiveIndexItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)) {
+                $archiveIndexPaths += $currentArchiveIndexItem.FullName
+            }
+            foreach ($annualIndexItem in @(Get-ChildItem -LiteralPath $memoryRoot -Filter 'project_archive_*.md' -Force -ErrorAction SilentlyContinue | Sort-Object Name)) {
+                if ($annualIndexItem.PSIsContainer) {
+                    Add-ValidationFailure -Message "Annual project archive index is not a file: $($annualIndexItem.FullName)"
+                    continue
+                }
+                if (($annualIndexItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    Add-ValidationFailure -Message "Annual project archive index cannot be a symbolic link or reparse point: $($annualIndexItem.FullName)"
+                    continue
+                }
+                if (-not (Test-MemoryPathInsideRoot -Path $annualIndexItem.FullName -Root $memoryRoot)) {
+                    Add-ValidationFailure -Message "Annual project archive index escaped the project Memory directory: $($annualIndexItem.FullName)"
+                    continue
+                }
+                $archiveIndexPaths += $annualIndexItem.FullName
+            }
+
+            if ($currentArchiveIndexItem -and $currentArchiveIndexItem.FullName -in $archiveIndexPaths) {
                 $projectArchiveContent = Get-Content -LiteralPath $archiveIndexPath -Raw
                 foreach ($heading in @('BUGS', 'IMPROVE / OPTIMIZE', 'REFACTOR', 'FEATURE', 'ANALYSIS')) {
                     if ($projectArchiveContent -notmatch "(?m)^#{1,2} $([regex]::Escape($heading))\s*$") {
@@ -325,9 +355,9 @@ if (-not [string]::IsNullOrWhiteSpace($ProjectPath)) {
                     }
                 }
             }
-            Test-MemoryIndexMapping -IndexPath $openIndexPath -DetailDirectory $workDirectory -RelativeDirectory 'work'
-            Test-MemoryIndexMapping -IndexPath $archiveIndexPath -DetailDirectory (Join-Path $memoryRoot 'archive') -RelativeDirectory 'archive'
-            Test-MemoryIndexMapping -IndexPath $archiveIndexPath -DetailDirectory (Join-Path $memoryRoot 'analysis') -RelativeDirectory 'analysis'
+            Test-MemoryIndexMapping -IndexPaths @($openIndexPath) -IndexDisplayName 'project_open_work.md' -DetailDirectory $workDirectory -RelativeDirectory 'work'
+            Test-MemoryIndexMapping -IndexPaths $archiveIndexPaths -IndexDisplayName 'project_archive.md and annual indexes' -DetailDirectory (Join-Path $memoryRoot 'archive') -RelativeDirectory 'archive'
+            Test-MemoryIndexMapping -IndexPaths $archiveIndexPaths -IndexDisplayName 'project_archive.md and annual indexes' -DetailDirectory (Join-Path $memoryRoot 'analysis') -RelativeDirectory 'analysis'
 
             if (Test-Path -LiteralPath $workDirectory -PathType Container) {
                 foreach ($workFile in @(Get-ChildItem -LiteralPath $workDirectory -Filter '*.md' -File)) {
