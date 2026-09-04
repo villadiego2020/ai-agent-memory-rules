@@ -1,6 +1,6 @@
 <div align="center">
 
-# agent-memory-rules
+# ai-agent-memory-rules
 
 *ทีม Subagent + กฎการทำงานสำหรับ Claude Code ที่เอาไปใช้ซ้ำได้ — ดึงมาจาก setup ส่วนตัวที่ใช้งานจริงทุกวัน*
 
