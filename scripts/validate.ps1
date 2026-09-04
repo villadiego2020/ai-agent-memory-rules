@@ -53,20 +53,32 @@ function Test-MemoryIndexMapping {
 
     $indexContent = Get-Content -LiteralPath $IndexPath -Raw
     $escapedDirectory = [regex]::Escape($RelativeDirectory)
-    $linkedFileNames = @(
-        [regex]::Matches($indexContent, "(?i)\((?:\./)?$escapedDirectory/([^)]+\.md)\)") |
-            ForEach-Object { $_.Groups[1].Value }
+    $indexLinks = @(
+        [regex]::Matches($indexContent, "(?i)\[([^\]]+)\]\((?:\./)?$escapedDirectory/([^)]+\.md)\)") |
+            ForEach-Object {
+                [pscustomobject]@{
+                    Label = $_.Groups[1].Value.Trim()
+                    FileName = $_.Groups[2].Value
+                }
+            }
     )
     $detailFileNames = @(
         Get-ChildItem -LiteralPath $DetailDirectory -Filter '*.md' -File |
             ForEach-Object Name
     )
     foreach ($detailFileName in $detailFileNames) {
-        if (@($linkedFileNames | Where-Object { $_ -eq $detailFileName }).Count -ne 1) {
-            Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) must link exactly once to $RelativeDirectory/$detailFileName."
+        $matchingLinks = @($indexLinks | Where-Object { $_.FileName -eq $detailFileName })
+        if ($matchingLinks.Count -eq 0) {
+            Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) does not index $RelativeDirectory/$detailFileName. Add one [detail] link."
+            continue
+        }
+
+        $primaryLinks = @($matchingLinks | Where-Object { $_.Label -eq 'detail' })
+        if ($primaryLinks.Count -gt 1) {
+            Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) contains $($primaryLinks.Count) primary [detail] links to $RelativeDirectory/$detailFileName; keep exactly one."
         }
     }
-    foreach ($linkedFileName in $linkedFileNames) {
+    foreach ($linkedFileName in @($indexLinks | ForEach-Object FileName | Sort-Object -Unique)) {
         if ($linkedFileName -notin $detailFileNames) {
             Add-ValidationFailure -Message "$([System.IO.Path]::GetFileName($IndexPath)) links to a missing file: $RelativeDirectory/$linkedFileName"
         }
