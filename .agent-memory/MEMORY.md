@@ -4,4 +4,4 @@
 
 - [User and project rules](user_and_feedback.md)
 - [Open work](project_open_work.md)
-- [Completed work and analysis](project_archive.md) — latest: PROJ-001
+- [Completed work and analysis](project_archive.md) — latest: PROJ-002
