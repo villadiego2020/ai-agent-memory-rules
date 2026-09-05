@@ -6,6 +6,55 @@ function Get-MemoryRulesRepositoryRoot {
     return [System.IO.Path]::GetFullPath((Join-Path $CallingScriptRoot '..'))
 }
 
+function Get-MemoryRulesUserProfile {
+    $profilePath = [Environment]::GetFolderPath('UserProfile')
+    if ([string]::IsNullOrWhiteSpace($profilePath)) {
+        $profilePath = $env:USERPROFILE
+    }
+    if ([string]::IsNullOrWhiteSpace($profilePath)) {
+        $profilePath = $env:HOME
+    }
+    if ([string]::IsNullOrWhiteSpace($profilePath) -or -not [System.IO.Path]::IsPathRooted($profilePath)) {
+        throw 'Cannot resolve an absolute user profile directory. Specify -CodexHome or -ClaudeHome.'
+    }
+    return [System.IO.Path]::GetFullPath($profilePath)
+}
+
+function Get-CodexSkillsHome {
+    param([string]$OverridePath = '')
+    if (-not [string]::IsNullOrWhiteSpace($OverridePath)) {
+        return [System.IO.Path]::GetFullPath($OverridePath)
+    }
+    return Join-Path (Get-MemoryRulesUserProfile) '.agents/skills'
+}
+
+function Get-SharedSkillManagedFiles {
+    param([string]$RepositoryRoot, [string]$ConfigurationHome, [string]$SkillsHome = '')
+    if ([string]::IsNullOrWhiteSpace($SkillsHome)) { $SkillsHome = Join-Path $ConfigurationHome 'skills' }
+    $skillRoot = Join-Path $RepositoryRoot 'skills/game-workflow'
+    if (-not (Test-Path -LiteralPath (Join-Path $skillRoot 'SKILL.md') -PathType Leaf)) {
+        throw "Missing shared skill: $skillRoot"
+    }
+    Get-ChildItem -LiteralPath $skillRoot -Recurse -File | Sort-Object FullName | ForEach-Object {
+        $relativePath = $_.FullName.Substring($skillRoot.Length).TrimStart('\', '/')
+        [pscustomobject]@{
+            Source = $_.FullName
+            Target = Join-Path $SkillsHome "game-workflow/$relativePath"
+        }
+    }
+}
+
+function Assert-ManagedParentPathsSafe {
+    param([string]$Path)
+    $parentPath = Split-Path -Parent ([System.IO.Path]::GetFullPath($Path))
+    while (-not [string]::IsNullOrWhiteSpace($parentPath)) {
+        Assert-MemoryPathIsNotReparsePoint -Path $parentPath -Purpose 'Managed parent directory'
+        $nextParent = Split-Path -Parent $parentPath
+        if ($nextParent -eq $parentPath) { break }
+        $parentPath = $nextParent
+    }
+}
+
 function Get-CodexConfigurationHome {
     param([string]$OverridePath = '')
 
@@ -17,7 +66,7 @@ function Get-CodexConfigurationHome {
         return [System.IO.Path]::GetFullPath($env:CODEX_HOME)
     }
 
-    return Join-Path ([Environment]::GetFolderPath('UserProfile')) '.codex'
+    return Join-Path (Get-MemoryRulesUserProfile) '.codex'
 }
 
 function Get-ClaudeConfigurationHome {
@@ -31,7 +80,7 @@ function Get-ClaudeConfigurationHome {
         return [System.IO.Path]::GetFullPath($env:CLAUDE_CONFIG_DIR)
     }
 
-    return Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude'
+    return Join-Path (Get-MemoryRulesUserProfile) '.claude'
 }
 
 function Get-MemoryProjectRoot {

@@ -36,7 +36,7 @@ try {
         '-ExecutionPolicy', 'Bypass',
         '-File', (Join-Path $repositoryRoot 'scripts/uninstall.ps1'),
         '-Platform', 'Codex',
-        '-CodexHome', $codexHome
+        '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome
     ) -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -Wait -PassThru
 
     $stderr = [System.IO.File]::ReadAllText($stderrPath)

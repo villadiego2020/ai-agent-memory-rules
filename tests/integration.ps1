@@ -79,7 +79,7 @@ try {
     [System.IO.File]::WriteAllText($hooksPath, (($originalHooks | ConvertTo-Json -Depth 12) + [Environment]::NewLine))
 
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $projectRoot '.agent-memory'))) -Message 'Fixture starts without project Memory.'
-    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Copy', '-CodexHome', $codexHome)
+    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Copy', '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome)
     Assert-True -Condition (Test-Path -LiteralPath (Join-Path $codexHome 'AGENTS.md') -PathType Leaf) -Message 'Codex AGENTS.md was installed.'
     Assert-True -Condition (Test-Path -LiteralPath $unrelatedAgentPath -PathType Leaf) -Message 'Unrelated agent was preserved.'
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $projectRoot '.agent-memory'))) -Message 'Installer did not initialize project Memory.'
@@ -90,7 +90,7 @@ try {
     Assert-True -Condition (@($installedHooks.hooks.Stop).Count -eq 1) -Message 'Unrelated Stop hook was preserved.'
 
     $backupManifestCountBefore = @(Get-ChildItem -LiteralPath (Join-Path $codexHome '.ai-agent-memory-rules/backups') -Filter 'manifest.json' -File -Recurse).Count
-    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Copy', '-CodexHome', $codexHome)
+    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Copy', '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome)
     $backupManifestCountAfter = @(Get-ChildItem -LiteralPath (Join-Path $codexHome '.ai-agent-memory-rules/backups') -Filter 'manifest.json' -File -Recurse).Count
     Assert-True -Condition ($backupManifestCountBefore -eq $backupManifestCountAfter) -Message 'Idempotent reinstall created no backup.'
 
@@ -161,7 +161,7 @@ try {
     Assert-True -Condition $reparseRejected -Message 'Loader rejected a reparse-point index.'
     Assert-True -Condition ($reparseContext -notlike '*reparse-target-must-not-load*') -Message 'Loader did not read through a reparse-point index.'
 
-    Invoke-RepositoryScript -RelativePath 'scripts/validate.ps1' -Arguments @('-Installed', '-Platform', 'Codex', '-CodexHome', $codexHome, '-ProjectPath', $projectRoot)
+    Invoke-RepositoryScript -RelativePath 'scripts/validate.ps1' -Arguments @('-Installed', '-Platform', 'Codex', '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome, '-ProjectPath', $projectRoot)
 
     $installedAgentsPath = Join-Path $codexHome 'AGENTS.md'
     [System.IO.File]::AppendAllText($installedAgentsPath, "`nlocal modification")
@@ -169,16 +169,16 @@ try {
     $failureErr = Join-Path $temporaryRoot 'expected-failure.stderr.txt'
     $failureProcess = Start-Process -FilePath $powershellExecutable -ArgumentList @(
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $repositoryRoot 'scripts/install.ps1'),
-        '-Platform', 'Codex', '-Mode', 'Copy', '-CodexHome', $codexHome
+        '-Platform', 'Codex', '-Mode', 'Copy', '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome
     ) -RedirectStandardOutput $failureOut -RedirectStandardError $failureErr -WindowStyle Hidden -Wait -PassThru
     Assert-True -Condition ($failureProcess.ExitCode -ne 0) -Message 'Installer rejected a conflict without Force.'
 
-    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Copy', '-CodexHome', $codexHome, '-Force')
+    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Copy', '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome, '-Force')
     $forcedBackups = @(Get-ChildItem -LiteralPath (Join-Path $codexHome '.ai-agent-memory-rules/backups') -Filter 'manifest.json' -File -Recurse)
     Assert-True -Condition ($forcedBackups.Count -gt $backupManifestCountAfter) -Message 'Force created a backup manifest.'
 
     $memoryHashBeforeUninstall = (Get-FileHash -LiteralPath $memoryIndexPath -Algorithm SHA256).Hash
-    Invoke-RepositoryScript -RelativePath 'scripts/uninstall.ps1' -Arguments @('-Platform', 'Codex', '-CodexHome', $codexHome)
+    Invoke-RepositoryScript -RelativePath 'scripts/uninstall.ps1' -Arguments @('-Platform', 'Codex', '-CodexSkillsHome', (Join-Path $temporaryRoot 'codex-skills'), '-CodexHome', $codexHome)
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $codexHome 'AGENTS.md'))) -Message 'Managed AGENTS.md was removed.'
     Assert-True -Condition (Test-Path -LiteralPath $unrelatedAgentPath -PathType Leaf) -Message 'Unrelated agent remained.'
     Assert-True -Condition ((Get-FileHash -LiteralPath $memoryIndexPath -Algorithm SHA256).Hash -eq $memoryHashBeforeUninstall) -Message 'Uninstall did not change project Memory.'
@@ -188,7 +188,7 @@ try {
     Assert-True -Condition (@($remainingHooks.hooks.SubagentStart).Count -eq 0) -Message 'Managed SubagentStart hook was removed.'
 
     $previewHome = Join-Path $temporaryRoot 'preview-home'
-    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Link', '-CodexHome', $previewHome, '-WhatIf')
+    Invoke-RepositoryScript -RelativePath 'scripts/install.ps1' -Arguments @('-Platform', 'Codex', '-Mode', 'Link', '-CodexSkillsHome', (Join-Path $temporaryRoot 'preview-skills'), '-CodexHome', $previewHome, '-WhatIf')
     Assert-True -Condition (-not (Test-Path -LiteralPath $previewHome)) -Message 'Install WhatIf changed no destination.'
 
     $memoryHashBeforeClaude = (Get-FileHash -LiteralPath $memoryIndexPath -Algorithm SHA256).Hash

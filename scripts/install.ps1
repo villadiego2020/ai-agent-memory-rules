@@ -7,6 +7,7 @@ param(
     [string]$Mode = 'Link',
 
     [string]$CodexHome = '',
+    [string]$CodexSkillsHome = '',
     [string]$ClaudeHome = '',
     [switch]$Force
 )
@@ -61,6 +62,10 @@ function Get-ManagedFiles {
             }
     }
 
+    $skillsHome = if ($SelectedPlatform -eq 'Codex') { Get-CodexSkillsHome -OverridePath $CodexSkillsHome } else { Join-Path $ConfigurationHome 'skills' }
+    foreach ($skillFile in @(Get-SharedSkillManagedFiles -RepositoryRoot $repositoryRoot -ConfigurationHome $ConfigurationHome -SkillsHome $skillsHome)) {
+        $files.Add($skillFile)
+    }
     return $files
 }
 
@@ -169,6 +174,7 @@ function Assert-ManagedFileConflicts {
 
     $conflicts = [System.Collections.Generic.List[string]]::new()
     foreach ($managedFile in $ManagedFiles) {
+        Assert-ManagedParentPathsSafe -Path $managedFile.Target
         $item = Get-Item -LiteralPath $managedFile.Target -Force -ErrorAction SilentlyContinue
         if ($item -and $item.PSIsContainer) {
             throw "Installation stopped because a directory occupies the managed file path: $($managedFile.Target)"
@@ -416,6 +422,9 @@ function Install-Platform {
     )
 
     $managedFiles = @(Get-ManagedFiles -SelectedPlatform $SelectedPlatform -ConfigurationHome $ConfigurationHome)
+    Assert-MemoryPathIsNotReparsePoint -Path (Join-Path $ConfigurationHome '.ai-agent-memory-rules/install-manifest.json') -Purpose 'Installation manifest'
+    Assert-ManagedParentPathsSafe -Path (Join-Path $ConfigurationHome '.ai-agent-memory-rules/backups/manifest.json')
+    Assert-MemoryPathIsNotReparsePoint -Path (Join-Path $ConfigurationHome 'hooks.json') -Purpose 'Hooks configuration'
     Assert-ManagedFileConflicts -ManagedFiles $managedFiles
     Assert-InstallManifestSafe -ConfigurationHome $ConfigurationHome
     if ($SelectedPlatform -eq 'Codex') {
@@ -456,4 +465,4 @@ foreach ($selectedPlatform in $selectedPlatforms) {
 if ($Platform -in @('Codex', 'Both') -and -not $WhatIfPreference) {
     Write-Host 'Open Codex /hooks once to review and trust the installed lifecycle hooks.'
 }
-Write-Host 'Installation manages shared rules, agent profiles, and Codex hooks only. Initialize .agent-memory separately inside each project.'
+Write-Host 'Installation manages shared rules, agent profiles, shared game-workflow skill, and Codex hooks. Initialize optional .agent-memory separately inside each project.'

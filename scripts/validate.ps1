@@ -5,6 +5,7 @@ param(
     [ValidateSet('Codex', 'Claude')]
     [string]$Platform = 'Codex',
     [string]$CodexHome = '',
+    [string]$CodexSkillsHome = '',
     [string]$ClaudeHome = '',
     [string]$ProjectPath = ''
 )
@@ -110,6 +111,7 @@ foreach ($requiredFile in @(
     'scripts/validate.ps1',
     'scripts/uninstall.ps1',
     'scripts/lib/MemoryRules.Common.ps1',
+    'skills/game-workflow/SKILL.md',
     'tests/integration.ps1'
 )) {
     Test-RequiredPath -RelativePath $requiredFile
@@ -121,6 +123,24 @@ foreach ($requiredDirectory in @(
     'codex/agents'
 )) {
     Test-RequiredPath -RelativePath $requiredDirectory -PathType Container
+}
+
+$skillRoot = Join-Path $resolvedRepositoryRoot 'skills/game-workflow'
+$skillPath = Join-Path $skillRoot 'SKILL.md'
+if (Test-Path -LiteralPath $skillPath -PathType Leaf) {
+    $skillContent = Get-Content -LiteralPath $skillPath -Raw
+    if ($skillContent -notmatch '(?s)\A---\r?\n.*?\r?\n---') {
+        Add-ValidationFailure -Message 'game-workflow requires YAML frontmatter.'
+    }
+    foreach ($fieldPattern in @('(?m)^name:\s*game-workflow\s*$', '(?m)^description:\s*\S.+$')) {
+        if ($skillContent -notmatch $fieldPattern) { Add-ValidationFailure -Message "Invalid game-workflow skill field: $fieldPattern" }
+    }
+    foreach ($reference in [regex]::Matches($skillContent, 'references/[A-Za-z0-9._/-]+\.md')) {
+        $referencePath = Join-Path $skillRoot $reference.Value
+        if (-not (Test-MemoryPathInsideRoot -Path $referencePath -Root $skillRoot) -or -not (Test-Path -LiteralPath $referencePath -PathType Leaf)) {
+            Add-ValidationFailure -Message "Invalid skill reference: $($reference.Value)"
+        }
+    }
 }
 
 $agentsPath = Join-Path $resolvedRepositoryRoot 'codex/AGENTS.md'
@@ -383,6 +403,12 @@ if ($Installed) {
     } else {
         try {
             $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+            $skillsHome = if ($Platform -eq 'Codex') { Get-CodexSkillsHome -OverridePath $CodexSkillsHome } else { Join-Path $configurationHome 'skills' }
+            foreach ($expectedSkill in @(Get-SharedSkillManagedFiles -RepositoryRoot $resolvedRepositoryRoot -ConfigurationHome $configurationHome -SkillsHome $skillsHome)) {
+                if ($expectedSkill.Target -notin @($manifest.managedFiles.target)) {
+                    Add-ValidationFailure -Message "Installed skill is not managed: $($expectedSkill.Target)"
+                }
+            }
             foreach ($managedFile in @($manifest.managedFiles)) {
                 if (-not (Test-Path -LiteralPath $managedFile.target -PathType Leaf)) {
                     Add-ValidationFailure -Message "Installed managed file is missing: $($managedFile.target)"

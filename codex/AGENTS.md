@@ -1,176 +1,71 @@
 # Shared Agent and Memory Rules for Codex
 
-This file is the global working agreement for every project opened with Codex. Project-specific instructions may refine these rules, but they must not silently weaken safety, privacy, or data-preservation requirements.
+These are shared defaults. Follow explicit user instructions and applicable project policies; report unresolved conflicts. Stay within the current task and preserve unrelated changes, secrets, and private project information.
 
-## Startup order
+## Startup and context
 
-1. Read these shared rules first.
-2. Identify the current project root. Prefer the nearest Git root; otherwise use the current working directory.
-3. Load only the current project's Memory indexes in this order:
-   - `MEMORY.md`
-   - `user_and_feedback.md`
-   - `project_open_work.md`
-   - `project_archive.md`
-4. Read detailed `work/`, `archive/`, or `analysis/` files only when the current task needs them.
-5. Apply project-local `AGENTS.md` instructions and the loaded Memory together. Report contradictions instead of guessing.
+Identify the current project root: nearest Git root, otherwise the current directory. When available, load only its `<project-root>/.agent-memory/` indexes in order: `MEMORY.md`, `user_and_feedback.md`, `project_open_work.md`, `project_archive.md`. A startup hook may already provide them; do not reload unchanged context. Read linked work, archive, or analysis details only when relevant. Never search another project's Memory, a user-home Memory store, or a central fallback. Missing Memory is normal; do not initialize it automatically.
 
-The bundled startup hook normally performs steps 2-4. If the hook is unavailable, read Memory only from `<project-root>/.agent-memory/`. There is no user-home, encoded-path, or central-repository fallback.
+Inspect the real stack and scoped source before proposing changes. Reuse supplied evidence and rejected hypotheses; broaden inspection only for a named gap, contradiction, or changed file. Distinguish observed facts from inferences and assumptions.
 
-Never load another project's Memory into the current project. Never treat Memory content as a higher-priority instruction than the user, system, developer, or active `AGENTS.md` chain.
+## Choose the lightest sufficient workflow
 
-## What Memory is
+Before editing, briefly identify who thinks and implements: `[DIRECT]`, normal subagent `[SUB]`, or user-approved team `[TEAM]`.
 
-Memory is a small, reviewable set of Markdown files that carries verified project context across sessions. It records working agreements, open work, completed work, root causes, rejected hypotheses, and reusable lessons.
+- Read-only questions, explanations, status, and diagnosis: inspect and answer directly.
+- Localized, reversible, low-risk edits: the orchestrator may implement directly and perform focused self-verification. No mandatory lead, planner, tester, task document, or approval gate.
+- Meaningful behavioral or regression risk: use one stack-appropriate implementation lead and independent `system-tester` verification. This includes network synchronization, save compatibility, security boundaries, critical UI flows, broad refactors, and explicit independent-test requests.
+- Large cross-system features or redesigns: use `system-planner` first, then only the necessary advisors and lead. A small feature does not need a planner.
 
-Memory is not a chat transcript, a replacement for source control, a secret store, a task tracker, or a place to copy entire documents. Keep it factual, concise, and specific to one project.
-
-Actual Memory is versioned in the working project's own Git repository and branch. Never copy it into this public rules repository. Never store credentials, customer secrets, access tokens, regulated personal data, or sensitive production values in Memory.
-
-## Work routing
-
-Before changing project files, state who is thinking, who is implementing, and whether the work uses normal subagents (`[SUB]`) or a user-approved team (`[TEAM]`).
-
-The orchestrator coordinates work and may inspect files, search, diagnose, and run read-only commands. Project file changes must be owned by the appropriate implementation lead:
-
-| Work | Advisor | Implementation lead |
+| Scope | Implementation owner | Conditional read-only advisor |
 | --- | --- | --- |
-| Web UI, layout, typography, accessibility | `uxui-expert` for specification fidelity, visual hierarchy, interaction states, and accessibility when design judgment is material | `web-expert` |
-| Web application or API work | As needed | `web-expert` |
-| Backend architecture, data models, migrations, caching, authentication | `backend-architect` | Stack-appropriate lead |
-| Network protocols, synchronization, realtime transport | `network-expert` for transport fundamentals, authority, prediction/reconciliation, bandwidth, allocation, lifecycle, and framework-specific tradeoffs including Photon Fusion, FishNet, and Mirror | Stack-appropriate lead |
-| Unity gameplay or tooling | As needed | `unity-expert`, responsible for scoped code analysis, Clean Code, proportionate event-based/OOP boundaries, reusable configuration, and suitable patterns |
-| Game systems, saves, scenes, state management | `game-architect` for ownership, data flow, pattern choice, configuration boundaries, and complexity control | `unity-expert` |
-| Large new feature or cross-system redesign | `system-planner` first | Stack-appropriate lead |
-| Meaningful behavioral, regression, network, save-data, security, or critical-UI risk; or explicit user request | None | `system-tester` after implementation |
-| Memory health or backlog status | `project-manager` | Orchestrator updates Memory |
-| Organic 3D asset | `3d-sculptor`, then `3d-modeller`, `3d-rigger`, `3d-animator` | Current pipeline role |
-| Hard-surface 3D asset | `3d-modeller`, then `3d-rigger`, `3d-animator` | Current pipeline role |
+| Web UI, application, API | web-expert | uxui-expert for material design decisions; backend-architect for data/auth architecture |
+| Unity gameplay and tooling | unity-expert | game-architect for system ownership; network-expert for transport/synchronization |
+| Cross-system planning | Stack lead | system-planner |
+| Verification | system-tester (test files only when assigned) | None |
+| Memory health/backlog | Orchestrator | project-manager |
+| Organic 3D | 3d-sculptor → 3d-modeller → 3d-rigger → 3d-animator | Current pipeline role |
+| Hard-surface 3D | 3d-modeller → 3d-rigger → 3d-animator | Current pipeline role |
 
-Advisors, architects, planners, and the project manager are read-only. They return decisions and evidence to the implementation lead. The system tester may edit test files only. All subagents treat `.agent-memory` as read-only and report durable facts to the orchestrator. The orchestrator is the only role that writes Memory. Do not use every advisor by default; involve only roles relevant to the task.
+Advisors, architects, planners, and project-manager are read-only; they do not mutate trackers or other external state. All subagents treat `.agent-memory` as read-only and report durable facts to the orchestrator, the only Memory writer. In sequential creative pipelines, show each stage's output and await user approval before the next stage.
 
-For sequential creative pipelines, show the user the output at the end of each stage and wait for approval before starting the next stage.
+When delegation is warranted, prefer normal subagents. A team requires a real need to exchange/challenge findings and independent file ownership; explain its additional cost and obtain approval unless already authorized. Run independent read-heavy work concurrently; keep dependent or overlapping writes sequential. Do not delegate merely to repeat evidence.
 
-### Risk-based fast path
+Give each handoff only the goal, exact files/modules and ownership, relevant facts/rejected hypotheses, acceptance criteria, focused checks, and unresolved question. Warn that other changes may exist and must not be reverted. Wait for the owner; do not duplicate its scan or implementation. Add participants only to resolve a named risk or dependency.
 
-Choose the lightest workflow that still controls the actual risk:
+## Engineering and verification
 
-- **Read-only answer, explanation, status, or diagnosis:** the orchestrator inspects and answers directly. Do not spawn an agent merely to restate evidence already available.
-- **Localized, low-risk edit:** use one stack-appropriate implementation lead. That lead performs focused self-verification against explicit acceptance criteria; an independent tester is optional.
-- **Meaningful behavioral or regression risk:** use the stack lead, then `system-tester`. Independent testing is required for network synchronization, save-data compatibility, security boundaries, critical UI flows, broad refactors, or when the user requests it.
-- **Cross-system feature or redesign:** call `system-planner` first, then only the advisors and leads named by the plan. Do not call the planner for a small, bounded change.
+Use the repository's conventions and installed versions. Prefer intention-revealing names, cohesive small methods, explicit side effects, and shallow control flow. Apply OOP, events, configuration reuse, and patterns where they clarify ownership; avoid speculative abstractions. Use direct calls for owned commands/queries and ordering, events for decoupled facts, with explicit subscription cleanup. Exceptions represent exceptional failures; expected hot-path outcomes use appropriate Try/result forms. Never swallow failures or leave empty catches.
 
-Run independent, read-heavy advisors concurrently when their scopes do not depend on one another. Keep write-heavy, dependent, or same-file work sequential. Every delegation must name exact files or modules, the question or responsibility, expected output, acceptance criteria, relevant Memory facts, and known rejected hypotheses so the agent does not rescan the repository.
+Validate untrusted input at the authoritative boundary. Keep secrets out of code and Memory. Bound external calls, retries, queues, and connection lifetimes; preserve save/network compatibility. Use `rg` for scoped searches when available. Avoid destructive reset/delete commands without explicit authorization and verified targets.
 
-## Subagents and teams
+Run relevant existing checks in proportion to the change: typecheck, lint, build, focused tests, runtime or rendered evidence where needed. Do not invent tests solely to mirror implementation or claim unrun checks passed. Report actual expected/observed behavior, evidence, and limits. Compilation alone proves neither gameplay nor visual correctness. Stop only task-started temporary services; preserve user-owned Editor/server sessions.
 
-Use a normal subagent by default. A single focused change, measurable bug, sequential workflow, or work that touches the same files does not need a team.
+For substantive Unity, game architecture, game UI, networking, or game verification work, use the installed `game-workflow` skill and only its relevant reference. Use the runtime's discovered skill location first. If needed, resolve the configured personal skills directory: Codex uses its configured skill location (normally `~/.agents/skills`); Claude uses `CLAUDE_CONFIG_DIR` or its default `~/.claude`, then `skills`. Load `game-workflow/SKILL.md` there. Never assume this repository's path on another machine. If unavailable, continue with the profiles' core guidance and disclose a relevant limitation.
 
-Propose a team only when agents must exchange or challenge findings during the work and the task can be split into independent file ownership. Explain the extra cost and wait for user confirmation before opening a team unless the user explicitly requested one.
+## Optional project Memory
 
-When delegating implementation:
+Memory holds concise verified project facts, not transcripts, source documents, credentials, private company code, customer secrets, tokens, regulated personal data, or sensitive production values. Actual Memory belongs only in its own project's repository and branch. Never copy another project's Memory into this public rules repository; this repository may keep its own project Memory.
 
-- Assign concrete file or module ownership.
-- State explicit acceptance criteria and the smallest relevant verification commands.
-- Tell every worker that other changes may exist and must not be reverted.
-- Include relevant project Memory facts and known rejected hypotheses.
-- Wait for the delegated result instead of duplicating the same work.
-- Use `system-tester` according to the risk-based fast path, not automatically after every edit.
+Do not create or update Memory for every question or trivial change. Use an existing project workflow when a substantial task or durable finding warrants it; explicit user/project instructions decide whether initialization, tracker writes, or commits are authorized. No automatic setup, commit, or push in another project.
 
-Codex custom-agent profiles should normally omit `model` and `model_reasoning_effort` so they inherit the user's current model and effort. Override either value only for a specific task or intentionally configured role when the quality, latency, and token tradeoff justifies it. Use model identifiers supported by Codex; do not copy Claude-only aliases such as `fable`, `opus`, or `sonnet` into Codex profiles.
+When maintaining Memory:
 
-## Engineering standards
+- `MEMORY.md`: navigation, near ten lines and below roughly 3 KB.
+- `user_and_feedback.md`: durable preferences and project rules.
+- `project_open_work.md`: the sole open-work index, one entry per `work/<ID>.md`.
+- `project_archive.md`: short entries under exact sections `BUGS`, `IMPROVE / OPTIMIZE`, `REFACTOR`, `FEATURE`, `ANALYSIS`.
+- `work/<ID>.md`, `archive/<ID>.md`, `analysis/ref-<slug>.md`: scoped detail, using real identifiers only.
 
-Detect the real stack before editing by inspecting files such as `package.json`, `requirements.txt`, `pyproject.toml`, `composer.json`, `go.mod`, solution files, or project files. Follow the repository's existing conventions.
+Check the archive index for relevant prior fixes before investigation. Read detail only for regression, overlapping code, a matching watch item, or an explicit request; do not revive rejected hypotheses without new evidence.
 
-Prefer event-based design, object-oriented boundaries where they improve ownership, and Clean Code principles:
+For a tracked task, add one work file/index entry with `**Ready status:** Ready` or `**Ready status:** BLOCKED - waiting for <verifiable dependency>`; repeat a blocking dependency briefly in the index. Record confirmed causes, decisions, remaining work, and focused evidence. Analysis without active implementation belongs in `analysis/` with an `ANALYSIS` index entry, not open work.
 
-- Use intention-revealing names and avoid unexplained abbreviations.
-- Keep functions small and at one level of abstraction.
-- Prefer three or fewer parameters and avoid flag arguments.
-- Avoid clever one-liners, deep nesting, empty catch blocks, and `null` returns.
-- Validate untrusted input on the server and treat the server as authoritative state.
-- Keep secrets out of source code and prevent injection and cross-site scripting.
-- Give external calls timeouts; design retries to be bounded and idempotent.
-- For realtime connections, handle reconnect backoff, heartbeat, lifecycle cleanup, and backpressure.
-- Apply the Boy Scout Rule only inside the task's scope. Preserve unrelated user changes.
-
-Use `rg` or `rg --files` for repository searches when available. Use safe, non-destructive commands. Never run broad recursive delete or reset commands unless the user explicitly requests the exact operation and the target has been verified.
-
-Before reporting implementation complete, run the repository's relevant typecheck, lint, build, and focused tests. Report the commands and real results. Do not start a development server and leave it running.
-
-## Memory layout
-
-Each project Memory follows this structure:
-
-```text
-.agent-memory/
-|-- MEMORY.md
-|-- user_and_feedback.md
-|-- project_open_work.md
-|-- project_archive.md
-|-- work/
-|   `-- PROJ-001.md
-|-- archive/
-|   `-- PROJ-000.md
-`-- analysis/
-    `-- ref-topic.md
-```
-
-- `MEMORY.md` is a short navigation index. Keep it near ten lines and below roughly 3 KB.
-- `user_and_feedback.md` stores durable user preferences and confirmed project rules.
-- `project_open_work.md` is the only master index of open work. It maps one-to-one with files in `work/`.
-- `project_archive.md` is the master index of finished work and analysis. Keep the exact sections `BUGS`, `IMPROVE / OPTIMIZE`, `REFACTOR`, `FEATURE`, and `ANALYSIS`.
-- `work/<ID>.md` contains live details for one open task.
-- `archive/<ID>.md` contains final details for one completed task.
-- `analysis/ref-<slug>.md` contains reusable investigation or audit knowledge not tied to a task.
-
-Index entries stay short: one or two lines plus a relative link to detail. Detailed evidence belongs in `work/`, `archive/`, or `analysis/`.
-
-Every open work file must include one readiness line:
-
-```text
-**Ready status:** Ready
-```
-
-or
-
-```text
-**Ready status:** BLOCKED - waiting for <verifiable dependency>
-```
-
-Blocked open-work index entries repeat the verifiable dependency in brief.
-
-## Memory lifecycle
-
-### Analysis or proposal
-
-Create `analysis/ref-<slug>.md` and add one short entry to the `ANALYSIS` section of `project_archive.md`. If a tracker item is proposed, keep it in the tracker backlog. Do not create `work/` files or open-work entries yet.
-
-### Start a task
-
-Check `project_archive.md` for earlier fixes, rejected hypotheses, and watch items. Read the linked analysis when present. Move or create the task in the project's real tracker if one exists. Then create `work/<ID>.md`, add its single index entry to `project_open_work.md`, and record the readiness line.
-
-### During work
-
-Record confirmed root causes, decisions, rejected hypotheses, and remaining work in the task's `work/` file. Keep the open-work index concise. Do not duplicate tracker state or long explanations in the index.
-
-### Finish a task
-
-Only close a task when implementation and focused verification are complete and no follow-up remains:
-
-1. Move `work/<ID>.md` to `archive/<ID>.md`.
-2. Remove its entry from `project_open_work.md`.
-3. Add a concise entry under the correct archive section.
-4. Update the existing navigation line in `MEMORY.md`.
-5. Update the real task tracker if one exists.
-6. Run the repository's deterministic Memory validation when available.
-7. Commit work and Memory separately using the convention below.
-
-If follow-up remains, keep the task in `work/` and in the open-work index.
+Close only after implementation and focused verification are complete with no follow-up: move work detail to archive, remove its open entry, add the appropriate archive entry, and update the existing navigation line. Update a real tracker only when authorized; run deterministic Memory validation when available. If follow-up remains, keep the work open. Use short headings and one fact per bullet; separate deeper evidence into linked detail. Never invent tracker state or results.
 
 ## Commit convention
 
-Use these rules identically in every project:
+When commits are authorized, use these conventions; this section is not authorization to commit or push.
 
 - Work files and Memory must be separate commits by default.
 - Confirmed defect, regression, security issue, or broken behavior work commit: `[Bug] <message>`.
@@ -181,27 +76,10 @@ Use these rules identically in every project:
 - Commit Memory to the current project repository and branch.
 - Push follows the current project's normal authorization and policy. Never auto-push merely because Memory changed.
 
-## Reading archived work
-
-Scan `project_archive.md` first. Open a full archive detail file only when:
-
-- a completed issue has regressed or reopened;
-- the new change touches the same code as an earlier fix;
-- an archive index watch item matches the current symptom; or
-- the user asks about that specific task.
-
-Do not repeat an investigation already recorded as rejected unless new evidence invalidates the earlier conclusion.
-
-## Memory writing style
-
-- Use headings and one-fact-per-bullet formatting instead of long paragraphs.
-- Start task section headings with the task ID.
-- For non-task analysis, add a source line directly below the heading describing what was investigated and whether it produced a task.
-- Store durable rules as short rule, alternative, and warning-sign entries. Put deep evidence in a linked analysis file.
-- Never invent tracker state, task identifiers, test results, or facts that were not observed.
-
 ## Safe autonomy
 
-Read-only inspection and normal implementation steps inside the user's stated scope do not require extra permission. Ask before actions that expand scope, publish externally, spend money, delete material data, or require a user decision that changes the outcome.
+Complete authorized inspection and normal implementation without repeated approval. Ask only for missing authority or a material user decision: expanded scope, external publishing/messaging, spending money, or destructive data changes. Prior authorization persists.
 
-Keep work turn-based by default. Automated loops require a machine-verifiable stop condition, no human or external dependency, and a fixed attempt cap. Use deterministic scripts instead of agents for deterministic checks. Never use a loop to approve creative work, modify Memory autonomously, or trigger deployment without an explicit user decision.
+Keep work turn-based by default. Automated loops need a machine-verifiable stop condition, no human/external dependency, and a fixed attempt cap. Prefer deterministic scripts for deterministic checks. Never use a loop to approve creative work, autonomously modify Memory, or deploy without explicit authorization.
+
+Codex profiles omit `model` and `model_reasoning_effort` to inherit the user's settings. Do not copy Claude-only model aliases into Codex profiles.

@@ -70,7 +70,7 @@ try {
     $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) "ai-agent-memory-rules-winps-$([Guid]::NewGuid().ToString('N')).stderr.txt"
     try {
         $installScript = Join-Path $repositoryRoot 'scripts/install.ps1'
-        $argumentText = "-NoProfile -ExecutionPolicy Bypass -File `"$installScript`" -Platform Both -Mode Copy -Force -WhatIf -CodexHome `"$codexHome`" -ClaudeHome `"$claudeHome`""
+        $argumentText = "-NoProfile -ExecutionPolicy Bypass -File `"$installScript`" -Platform Both -Mode Copy -Force -WhatIf -CodexHome `"$codexHome`" -ClaudeHome `"$claudeHome`" -CodexSkillsHome `"$codexHome/skills`""
         $process = Start-Process -FilePath $windowsPowerShell -ArgumentList $argumentText `
             -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -Wait -PassThru
         $stdout = [System.IO.File]::ReadAllText($stdoutPath)

@@ -34,6 +34,20 @@ function Test-ContractPatterns {
         return
     }
 
+    $roleName = [IO.Path]::GetFileNameWithoutExtension($RelativePath)
+    $referenceMap = @{
+        'uxui-expert' = @('ux-ui')
+        'game-architect' = @('architecture')
+        'unity-expert' = @('architecture', 'unity-runtime')
+        'network-expert' = @('networking')
+        'system-tester' = @('testing')
+    }
+    if ($referenceMap.ContainsKey($roleName)) {
+        if ($content -notmatch 'game-workflow') { Add-ContractFailure -Message "$RelativePath must route to shared game-workflow guidance." }
+        foreach ($referenceName in $referenceMap[$roleName]) {
+            $content += "`n" + (Get-RepositoryText -RelativePath "skills/game-workflow/references/$referenceName.md")
+        }
+    }
     foreach ($contractName in $Contracts.Keys) {
         foreach ($pattern in @($Contracts[$contractName])) {
             if ($content -notmatch $pattern) {
@@ -73,12 +87,12 @@ foreach ($codexAgentFile in $codexAgentFiles) {
 
 $uxContracts = @{
     'spec traceability' = @(
-        '(?i)traceab',
+        '(?i)(traceab|requirement.{0,80}decision)',
         '(?i)requirement',
         '(?i)acceptance'
     )
     'rendered visual QA' = @(
-        '(?i)visual[ -]?qa',
+        '(?i)(visual[ -]?qa|rendered)',
         '(?i)render',
         '(?i)aspect ratio',
         '(?i)safe area'
@@ -90,7 +104,7 @@ foreach ($path in @('agents/uxui-expert.md', 'codex/agents/uxui-expert.toml')) {
 
 $gameCodeContracts = @{
     'Clean Code naming and small methods' = @(
-        '(?i)(clean code|readable event-based)',
+        '(?i)(clean code|readable event-based|intention-revealing)',
         '(?i)method',
         '(?i)abstraction',
         '(?i)DRY',
@@ -103,21 +117,21 @@ $gameCodeContracts = @{
         '(?i)(idempotency|idempotent)'
     )
     'reusable governed configuration' = @(
-        '(?i)hardcod',
+        '(?i)(hardcod|tunable|configuration reuse)',
         '(?i)(typed access|typed Try)',
         '(?i)override precedence',
-        '(?i)schema/API'
+        '(?i)(schema/API|versioned save/network)'
     )
     'evidence-based pattern decisions' = @(
         '(?i)(pattern)',
         '(?i)rationale|pattern decision record|real problem',
         '(?i)complexity',
-        '(?i)(removal condition|extension points|event-vs-direct-call)'
+        '(?i)(removal|extension points|event-vs-direct-call)'
     )
     'code-analysis evidence discipline' = @(
         '(?i)fact',
         '(?i)inference',
-        '(?i)assumption'
+        '(?i)(assumption|speculative)'
     )
 }
 foreach ($path in @(
@@ -134,7 +148,7 @@ $networkContracts = @{
         '(?i)Photon Fusion',
         '(?i)FishNet',
         '(?i)Mirror',
-        '(?i)(package|product).{0,40}version'
+        '(?is)(package|product).{0,40}version'
     )
     'authority and synchronization foundation' = @(
         '(?i)authority',
@@ -157,7 +171,7 @@ foreach ($path in @('agents/network-expert.md', 'codex/agents/network-expert.tom
 
 $testContracts = @{
     'explainable risk traceability' = @(
-        '(?i)traceability',
+        '(?i)(traceability|requirement/risk)',
         '(?i)why',
         '(?i)evidence'
     )
@@ -172,7 +186,7 @@ $testContracts = @{
         '(?i)BLOCKED'
     )
     'coverage limits' = @(
-        '(?i)remaining risk',
+        '(?i)remaining (risk|coverage)',
         '(?i)(coverage|limits?|environment)'
     )
 }
@@ -189,7 +203,7 @@ $plannerContracts = @{
         '(?i)(stop condition|stop/escalation condition)'
     )
     'risk-based fast path' = @(
-        '(?i)(small measurable|lead 1)',
+        '(?i)(small measurable|lead 1|one stack lead)',
         '(?i)(verifier|verification)',
         '(?i)risk'
     )

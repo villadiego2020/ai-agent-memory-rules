@@ -4,6 +4,7 @@ param(
     [string]$Platform = 'Codex',
 
     [string]$CodexHome = '',
+    [string]$CodexSkillsHome = '',
     [string]$ClaudeHome = '',
     [switch]$Force
 )
@@ -100,6 +101,10 @@ function Get-ExpectedManagedFiles {
             }
     }
 
+    $skillsHome = if ($SelectedPlatform -eq 'Codex') { Get-CodexSkillsHome -OverridePath $CodexSkillsHome } else { Join-Path $ConfigurationHome 'skills' }
+    foreach ($skillFile in @(Get-SharedSkillManagedFiles -RepositoryRoot $repositoryRoot -ConfigurationHome $ConfigurationHome -SkillsHome $skillsHome)) {
+        $definitions.Add($skillFile)
+    }
     return $definitions
 }
 
@@ -138,11 +143,13 @@ function Get-ValidatedInstallManifest {
     }
 
     $canonicalConfigurationHome = Get-CanonicalPath -Path $ConfigurationHome
+    $skillsHome = if ($SelectedPlatform -eq 'Codex') { Get-CodexSkillsHome -OverridePath $CodexSkillsHome } else { Join-Path $ConfigurationHome 'skills' }
+    $canonicalSkillRoot = Get-CanonicalPath -Path (Join-Path $skillsHome 'game-workflow')
     $expectedByTarget = [System.Collections.Generic.Dictionary[string, object]]::new($pathStringComparer)
     foreach ($expectedFile in @(Get-ExpectedManagedFiles -SelectedPlatform $SelectedPlatform -ConfigurationHome $canonicalConfigurationHome)) {
         $canonicalTarget = Get-CanonicalPath -Path $expectedFile.Target
         $canonicalSource = Get-CanonicalPath -Path $expectedFile.Source
-        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome)) {
+        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome) -and -not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalSkillRoot)) {
             throw "Internal safety error: expected managed path is outside the selected configuration home: $canonicalTarget"
         }
         $expectedByTarget.Add($canonicalTarget, [pscustomobject]@{
@@ -170,7 +177,8 @@ function Get-ValidatedInstallManifest {
         }
 
         $canonicalTarget = Get-CanonicalPath -Path ([string]$record.target)
-        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome)) {
+        Assert-ManagedParentPathsSafe -Path $canonicalTarget
+        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome) -and -not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalSkillRoot)) {
             throw "Cannot safely uninstall because a manifest target is outside the selected configuration home: $canonicalTarget"
         }
         if (-not $expectedByTarget.ContainsKey($canonicalTarget)) {
@@ -192,8 +200,12 @@ function Get-ValidatedInstallManifest {
         })
     }
 
-    if ($seenTargets.Count -ne $expectedByTarget.Count) {
-        throw 'Cannot safely uninstall because the manifest does not contain every installer-owned path exactly once.'
+    # Older manifests predate shared skills. Require the original complete set;
+    # any present skill records still pass the exact source/target allowlist above.
+    foreach ($expectedTarget in $expectedByTarget.Keys) {
+        if (-not (Test-MemoryPathInsideRoot -Path $expectedTarget -Root $canonicalSkillRoot) -and -not $seenTargets.Contains($expectedTarget)) {
+            throw 'Cannot safely uninstall because the manifest does not contain every original installer-owned path exactly once.'
+        }
     }
 
     return [pscustomobject]@{
@@ -306,6 +318,10 @@ function Uninstall-Platform {
     )
 
     $manifestPath = Join-Path $ConfigurationHome '.ai-agent-memory-rules/install-manifest.json'
+    Assert-ManagedParentPathsSafe -Path $manifestPath
+    Assert-MemoryPathIsNotReparsePoint -Path $manifestPath -Purpose 'Installation manifest'
+    Assert-ManagedParentPathsSafe -Path (Join-Path $ConfigurationHome '.ai-agent-memory-rules/backups/manifest.json')
+    Assert-MemoryPathIsNotReparsePoint -Path (Join-Path $ConfigurationHome 'hooks.json') -Purpose 'Hooks configuration'
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
         throw "Cannot safely uninstall $SelectedPlatform because its manifest is missing: $manifestPath"
     }
@@ -315,6 +331,7 @@ function Uninstall-Platform {
     $modifiedTargets = [System.Collections.Generic.List[string]]::new()
     foreach ($managedFile in @($manifest.managedFiles)) {
         $item = Get-Item -LiteralPath $managedFile.target -Force -ErrorAction SilentlyContinue
+        if ($item -and $item.PSIsContainer) { throw "Cannot safely uninstall a directory at a managed file path: $($managedFile.target)" }
         if ($item -and -not (Test-InstalledFileUnchanged -ManagedFile $managedFile -InstallMode ([string]$manifest.mode))) {
             $modifiedTargets.Add([string]$managedFile.target)
         }
