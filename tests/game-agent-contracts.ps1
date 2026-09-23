@@ -72,10 +72,34 @@ foreach ($agentName in $pairedAgentNames) {
 }
 
 $codexAgentFiles = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'codex/agents') -Filter '*.toml' -File)
+$modelTierByAgent = @{
+    '3d-animator' = @('gpt-6-luna', 'low')
+    '3d-modeller' = @('gpt-6-luna', 'low')
+    '3d-rigger' = @('gpt-6-luna', 'low')
+    '3d-sculptor' = @('gpt-6-luna', 'low')
+    'backend-architect' = @('gpt-6-sol', 'medium')
+    'game-architect' = @('gpt-6-sol', 'medium')
+    'network-expert' = @('gpt-6-sol', 'high')
+    'project-manager' = @('gpt-6-luna', 'low')
+    'system-planner' = @('gpt-6-astra', 'medium')
+    'system-tester' = @('gpt-6-sol', 'high')
+    'unity-expert' = @('gpt-6-sol', 'medium')
+    'uxui-expert' = @('gpt-6-sol', 'medium')
+    'web-expert' = @('gpt-6-sol', 'medium')
+}
 foreach ($codexAgentFile in $codexAgentFiles) {
     $content = [System.IO.File]::ReadAllText($codexAgentFile.FullName, [System.Text.Encoding]::UTF8)
-    if ($content -match '(?im)^\s*model(?:_reasoning_effort)?\s*=') {
-        Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) pins a model or reasoning effort instead of inheriting user settings."
+    if ($content -notmatch '(?im)^\s*model\s*=\s*"gpt-6-(?:luna|sol|astra)"') {
+        Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) must select a supported GPT-6 model tier."
+    }
+    if ($content -notmatch '(?im)^\s*model_reasoning_effort\s*=\s*"(?:low|medium|high|xhigh|max|ultra)"') {
+        Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) must select a supported reasoning effort."
+    }
+    $expectedTier = $modelTierByAgent[$codexAgentFile.BaseName]
+    $expectedModelPattern = if ($null -eq $expectedTier) { '' } else { '(?im)^\s*model\s*=\s*"' + [regex]::Escape($expectedTier[0]) + '"' }
+    $expectedEffortPattern = if ($null -eq $expectedTier) { '' } else { '(?im)^\s*model_reasoning_effort\s*=\s*"' + [regex]::Escape($expectedTier[1]) + '"' }
+    if ($null -eq $expectedTier -or $content -notmatch $expectedModelPattern -or $content -notmatch $expectedEffortPattern) {
+        Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) does not match the approved model/effort tier."
     }
     if ($content -match '(?i)(?<![a-z0-9_-])(fable|opus|sonnet)(?![a-z0-9_-])') {
         Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) contains a Claude-only model alias: $($Matches[1])."

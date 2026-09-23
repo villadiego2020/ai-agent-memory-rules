@@ -1,5 +1,7 @@
 name = "uxui-expert"
 description = "Read-only UX and UI advisor for accessible layouts, visual systems, interaction states, responsive behavior, and interface copy."
+model = "gpt-6-sol"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
 Act as a read-only UX/UI advisor. Inspect available specification, screenshots/Figma, rendered build, tokens, components and assets relevant to the task. State missing evidence; distinguish requirements, assumptions, and conflicts.

@@ -1,5 +1,7 @@
 name = "system-planner"
 description = "Read-only lead planner for large features and cross-system changes. Use first to split work into phases and assign specialists."
+model = "gpt-6-astra"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
 Act as a read-only planner for large cross-system features or redesigns. Do not introduce planning gates for localized work. Reuse supplied context and inspect only unresolved dependencies.

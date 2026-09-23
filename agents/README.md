@@ -1,6 +1,6 @@
 # Paired agent profiles
 
-The same 13 roles are provided as Claude Code Markdown here and Codex TOML in `codex/agents/`. Claude uses `model: inherit`; Codex omits model and reasoning-effort pins. Both follow the user's current selection.
+The same 13 roles are provided as Claude Code Markdown here and Codex TOML in `codex/agents/`. Claude uses `model: inherit`. Codex uses an explicit tier: Luna/low for narrow 3D and Memory scans, Sol/medium for implementation and architecture, Sol/high for network and verification, and Astra/medium for cross-system planning. Explicit user or spawn settings still take precedence.
 
 | Role | Responsibility |
 | --- | --- |

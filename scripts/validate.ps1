@@ -184,8 +184,11 @@ foreach ($agentName in $expectedAgentNames) {
     if ($agentContent -notmatch "(?m)^name\s*=\s*`"$([regex]::Escape($agentName))`"\s*$") {
         Add-ValidationFailure -Message "$agentName.toml has a name that does not match its filename."
     }
-    if ($agentContent -match '(?m)^model(_reasoning_effort)?\s*=') {
-        Add-ValidationFailure -Message "$agentName.toml pins a model or reasoning effort; public defaults must inherit user settings."
+    if ($agentContent -notmatch '(?im)^model\s*=\s*"gpt-6-(?:luna|sol|astra)"') {
+        Add-ValidationFailure -Message "$agentName.toml must select a supported GPT-6 model."
+    }
+    if ($agentContent -notmatch '(?im)^model_reasoning_effort\s*=\s*"(?:low|medium|high|xhigh|max|ultra)"') {
+        Add-ValidationFailure -Message "$agentName.toml must select a supported reasoning effort."
     }
     if ($agentName -in $readOnlyAgentNames -and $agentContent -notmatch '(?m)^sandbox_mode\s*=\s*"read-only"\s*$') {
         Add-ValidationFailure -Message "$agentName.toml must enforce a read-only sandbox."
