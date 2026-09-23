@@ -212,6 +212,12 @@ foreach ($agentName in $expectedAgentNames) {
     if ($claudeAgentContent -notmatch '<project-root>/\.agent-memory/' -or $claudeAgentContent -notmatch 'อ่านอย่างเดียว') {
         Add-ValidationFailure -Message "$agentName.md must use project-local .agent-memory as read-only context."
     }
+    if ($claudeAgentContent -notmatch '(?m)^model:\s*(?:haiku|sonnet|opus|fable)\s*$') {
+        Add-ValidationFailure -Message "$agentName.md must select a supported Claude model alias."
+    }
+    if ($claudeAgentContent -match '(?m)^effort:' -and $claudeAgentContent -notmatch '(?m)^effort:\s*(?:low|medium|high|xhigh|max)\s*$') {
+        Add-ValidationFailure -Message "$agentName.md must select a supported effort level."
+    }
 }
 
 $commitConventionLines = @(

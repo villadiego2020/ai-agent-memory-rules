@@ -10,7 +10,7 @@
 - ความเสี่ยง network, save, security, critical UI หรือผู้ใช้ขอ: system-tester ตรวจอิสระพร้อมเหตุผลและหลักฐาน
 - งาน 3D: ผู้ใช้ตรวจผลงานแต่ละขั้นก่อนเริ่มขั้นต่อไป
 
-Codex profiles แบ่ง model/effort ตามภาระงาน: Luna/low สำหรับงานแคบ, Sol/medium สำหรับ implementation และ architecture, Sol/high สำหรับ Network/test และ Astra/medium สำหรับ planner; คำสั่งเลือก model/effort เฉพาะงานยัง override ได้ Claude ใช้ `model: inherit` ตามรุ่นที่ผู้ใช้เลือก ไม่มีการเปิดทีมอัตโนมัติ Shared `game-workflow` skill โหลดสำหรับงานเกม/Unity ที่เกี่ยวข้อง แล้วอ่านเฉพาะ reference ที่ต้องใช้
+Codex profiles แบ่ง model/effort ตามภาระงาน: Luna/low สำหรับงานแคบ, Sol/medium สำหรับ implementation และ architecture, Sol/high สำหรับ Network/test และ Astra/medium สำหรับ planner; คำสั่งเลือก model/effort เฉพาะงานยัง override ได้ Claude profiles แบ่ง model/effort ตามภาระงานเช่นกัน: sonnet/medium สำหรับงาน 3D, haiku สำหรับสแกน Memory, sonnet/high สำหรับ implementation, architecture และ UX/UI, sonnet/xhigh สำหรับ test และ opus/high สำหรับ Network และ planner; model ที่ระบุตอนเรียกงานนั้นยัง override ได้ ไม่มีการเปิดทีมอัตโนมัติ Shared `game-workflow` skill โหลดสำหรับงานเกม/Unity ที่เกี่ยวข้อง แล้วอ่านเฉพาะ reference ที่ต้องใช้
 
 มี implementation leads (`unity-expert`, `web-expert`), read-only advisors (`uxui-expert`, `game-architect`, `network-expert`, `backend-architect`), planner/tester/project-manager และ 3D sculptor/modeller/rigger/animator รวม 13 roles
 

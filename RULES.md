@@ -82,4 +82,4 @@ Complete authorized inspection and normal implementation without repeated approv
 
 Keep work turn-based by default. Automated loops need a machine-verifiable stop condition, no human/external dependency, and a fixed attempt cap. Prefer deterministic scripts for deterministic checks. Never use a loop to approve creative work, autonomously modify Memory, or deploy without explicit authorization.
 
-Claude profiles use `model: inherit` with no pinned effort; honor the user's current selection unless explicitly overridden for the task.
+Claude profiles use a deliberate model/effort tier: `sonnet/medium` for 3D pipeline stages, `haiku` without an effort field for Memory scans, `sonnet/high` for implementation, architecture, and UX/UI, `sonnet/xhigh` for verification, and `opus/high` for network and cross-system planning. A model passed explicitly for one task still overrides the profile; change the role's profile when a different default tier is needed.

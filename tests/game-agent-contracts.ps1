@@ -109,6 +109,43 @@ foreach ($codexAgentFile in $codexAgentFiles) {
     }
 }
 
+$claudeAgentFiles = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'agents') -Filter '*.md' -File | Where-Object Name -ne 'README.md')
+$claudeTierByAgent = @{
+    '3d-animator' = @('sonnet', 'medium')
+    '3d-modeller' = @('sonnet', 'medium')
+    '3d-rigger' = @('sonnet', 'medium')
+    '3d-sculptor' = @('sonnet', 'medium')
+    'backend-architect' = @('sonnet', 'high')
+    'game-architect' = @('sonnet', 'high')
+    'network-expert' = @('opus', 'high')
+    'project-manager' = @('haiku', '')
+    'system-planner' = @('opus', 'high')
+    'system-tester' = @('sonnet', 'xhigh')
+    'unity-expert' = @('sonnet', 'high')
+    'uxui-expert' = @('sonnet', 'high')
+    'web-expert' = @('sonnet', 'high')
+}
+foreach ($claudeAgentFile in $claudeAgentFiles) {
+    $content = [System.IO.File]::ReadAllText($claudeAgentFile.FullName, [System.Text.Encoding]::UTF8)
+    $frontmatterMatch = [regex]::Match($content, '(?s)\A---\r?\n(.*?)\r?\n---')
+    if (-not $frontmatterMatch.Success) {
+        Add-ContractFailure -Message "agents/$($claudeAgentFile.Name) is missing YAML frontmatter."
+        continue
+    }
+    $frontmatter = $frontmatterMatch.Groups[1].Value
+    $modelMatch = [regex]::Match($frontmatter, '(?m)^model:\s*(\S+)\s*$')
+    $effortMatch = [regex]::Match($frontmatter, '(?m)^effort:\s*(\S+)\s*$')
+    $actualModel = if ($modelMatch.Success) { $modelMatch.Groups[1].Value } else { '' }
+    $actualEffort = if ($effortMatch.Success) { $effortMatch.Groups[1].Value } else { '' }
+    $expectedTier = $claudeTierByAgent[$claudeAgentFile.BaseName]
+    if ($null -eq $expectedTier -or $actualModel -ne $expectedTier[0] -or $actualEffort -ne $expectedTier[1]) {
+        Add-ContractFailure -Message "agents/$($claudeAgentFile.Name) does not match the approved Claude model/effort tier (found '$actualModel'/'$actualEffort')."
+    }
+    if ($content -match '(?i)gpt-\d') {
+        Add-ContractFailure -Message "agents/$($claudeAgentFile.Name) contains a Codex-only model name."
+    }
+}
+
 $uxContracts = @{
     'spec traceability' = @(
         '(?i)(traceab|requirement.{0,80}decision)',
