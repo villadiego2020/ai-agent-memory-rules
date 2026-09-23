@@ -22,7 +22,7 @@
 ## Outcome
 
 - Codex profiles now use GPT-6 tiers: Luna/low for 3D and project scans, Sol/medium for implementation and architecture, Sol/high for networking and verification, and Astra/medium for cross-system planning.
-- Updated the local `C:\Users\villa\.codex\config.toml` default model and subagent defaults to GPT-6 Sol/medium. Claude remains unchanged with inherited model settings.
+- Updated the local `<CodexHome>/config.toml` default model and subagent defaults to GPT-6 Sol/medium. Claude remains unchanged with inherited model settings.
 - Reinstalled Codex global profiles and skill with Copy mode; installed validation passed and existing Codex settings outside managed files were preserved.
 
 ## Verification
