@@ -1,0 +1,3 @@
+# claude adapter
+
+Load the installed agent-coordination skill for nontrivial tracked or cross-runtime work. Use its canonical scripts from the skill directory, or the repository wrappers in scripts/. Read the shared task and latest handoff; claim with a unique runtime:session identity, honor ownedFiles, and preserve unrelated changes. For independent review use a new reviewer actor, not ownership handoff. Use handoff + claim when transferring implementation. Return evidence and limitations; QA and complete are explicit coordinator commands. See ../README.md and the shared skill references. CLI dispatch is preview-only unless explicitly executed.

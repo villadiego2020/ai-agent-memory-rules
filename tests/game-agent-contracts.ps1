@@ -72,32 +72,27 @@ foreach ($agentName in $pairedAgentNames) {
 }
 
 $codexAgentFiles = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'codex/agents') -Filter '*.toml' -File)
-$modelTierByAgent = @{
-    '3d-animator' = @('gpt-6-luna', 'low')
-    '3d-modeller' = @('gpt-6-luna', 'low')
-    '3d-rigger' = @('gpt-6-luna', 'low')
-    '3d-sculptor' = @('gpt-6-luna', 'low')
-    'backend-architect' = @('gpt-6-sol', 'medium')
-    'game-architect' = @('gpt-6-sol', 'medium')
-    'network-expert' = @('gpt-6-sol', 'high')
-    'project-manager' = @('gpt-6-luna', 'low')
-    'system-planner' = @('gpt-6-astra', 'medium')
-    'system-tester' = @('gpt-6-sol', 'high')
-    'unity-expert' = @('gpt-6-sol', 'medium')
-    'uxui-expert' = @('gpt-6-sol', 'medium')
-    'web-expert' = @('gpt-6-sol', 'medium')
+$modelPolicy = Get-Content -LiteralPath (Join-Path $repositoryRoot 'skills/agent-coordination/model-policy.json') -Raw | ConvertFrom-Json
+if ($modelPolicy.schemaVersion -ne 1) { Add-ContractFailure -Message 'Unsupported shared model policy schema.' }
+foreach ($phase in @('routine', 'triage', 'plan', 'implement', 'review', 'analysis', 'hard', 'creative', 'network')) {
+    foreach ($runtimeName in @('codex', 'claude')) {
+        if (-not $modelPolicy.runtimes.$runtimeName.PSObject.Properties[$phase]) {
+            Add-ContractFailure -Message "Missing $runtimeName/$phase model policy."
+        }
+    }
 }
 foreach ($codexAgentFile in $codexAgentFiles) {
     $content = [System.IO.File]::ReadAllText($codexAgentFile.FullName, [System.Text.Encoding]::UTF8)
-    if ($content -notmatch '(?im)^\s*model\s*=\s*"gpt-6-(?:luna|sol|astra)"') {
+    if ($content -notmatch '(?im)^\s*model\s*=\s*"gpt-6(?:\.1)?-(?:luna|sol|astra)"') {
         Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) must select a supported GPT-6 model tier."
     }
     if ($content -notmatch '(?im)^\s*model_reasoning_effort\s*=\s*"(?:low|medium|high|xhigh|max|ultra)"') {
         Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) must select a supported reasoning effort."
     }
-    $expectedTier = $modelTierByAgent[$codexAgentFile.BaseName]
-    $expectedModelPattern = if ($null -eq $expectedTier) { '' } else { '(?im)^\s*model\s*=\s*"' + [regex]::Escape($expectedTier[0]) + '"' }
-    $expectedEffortPattern = if ($null -eq $expectedTier) { '' } else { '(?im)^\s*model_reasoning_effort\s*=\s*"' + [regex]::Escape($expectedTier[1]) + '"' }
+    $role = $modelPolicy.profileRoles.PSObject.Properties[$codexAgentFile.BaseName].Value
+    $expectedTier = if ($role) { $modelPolicy.runtimes.codex.$role } else { $null }
+    $expectedModelPattern = if ($null -eq $expectedTier) { '' } else { '(?im)^\s*model\s*=\s*"' + [regex]::Escape($expectedTier.model) + '"' }
+    $expectedEffortPattern = if ($null -eq $expectedTier) { '' } else { '(?im)^\s*model_reasoning_effort\s*=\s*"' + [regex]::Escape($expectedTier.effort) + '"' }
     if ($null -eq $expectedTier -or $content -notmatch $expectedModelPattern -or $content -notmatch $expectedEffortPattern) {
         Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) does not match the approved model/effort tier."
     }
@@ -110,21 +105,6 @@ foreach ($codexAgentFile in $codexAgentFiles) {
 }
 
 $claudeAgentFiles = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'agents') -Filter '*.md' -File | Where-Object Name -ne 'README.md')
-$claudeTierByAgent = @{
-    '3d-animator' = @('sonnet', 'medium')
-    '3d-modeller' = @('sonnet', 'medium')
-    '3d-rigger' = @('sonnet', 'medium')
-    '3d-sculptor' = @('sonnet', 'medium')
-    'backend-architect' = @('sonnet', 'high')
-    'game-architect' = @('sonnet', 'high')
-    'network-expert' = @('opus', 'high')
-    'project-manager' = @('haiku', '')
-    'system-planner' = @('opus', 'high')
-    'system-tester' = @('sonnet', 'xhigh')
-    'unity-expert' = @('sonnet', 'high')
-    'uxui-expert' = @('sonnet', 'high')
-    'web-expert' = @('sonnet', 'high')
-}
 foreach ($claudeAgentFile in $claudeAgentFiles) {
     $content = [System.IO.File]::ReadAllText($claudeAgentFile.FullName, [System.Text.Encoding]::UTF8)
     $frontmatterMatch = [regex]::Match($content, '(?s)\A---\r?\n(.*?)\r?\n---')
@@ -137,8 +117,10 @@ foreach ($claudeAgentFile in $claudeAgentFiles) {
     $effortMatch = [regex]::Match($frontmatter, '(?m)^effort:\s*(\S+)\s*$')
     $actualModel = if ($modelMatch.Success) { $modelMatch.Groups[1].Value } else { '' }
     $actualEffort = if ($effortMatch.Success) { $effortMatch.Groups[1].Value } else { '' }
-    $expectedTier = $claudeTierByAgent[$claudeAgentFile.BaseName]
-    if ($null -eq $expectedTier -or $actualModel -ne $expectedTier[0] -or $actualEffort -ne $expectedTier[1]) {
+    $role = $modelPolicy.profileRoles.PSObject.Properties[$claudeAgentFile.BaseName].Value
+    $expectedTier = if ($role) { $modelPolicy.runtimes.claude.$role } else { $null }
+    $expectedEffort = if ($null -eq $expectedTier -or $null -eq $expectedTier.effort) { '' } else { [string]$expectedTier.effort }
+    if ($null -eq $expectedTier -or $actualModel -ne $expectedTier.model -or $actualEffort -ne $expectedEffort) {
         Add-ContractFailure -Message "agents/$($claudeAgentFile.Name) does not match the approved Claude model/effort tier (found '$actualModel'/'$actualEffort')."
     }
     if ($content -match '(?i)gpt-\d') {

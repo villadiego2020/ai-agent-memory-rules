@@ -1,6 +1,6 @@
 # Paired agent profiles
 
-The same 13 roles are provided as Claude Code Markdown here and Codex TOML in `codex/agents/`. Claude uses an explicit tier: sonnet/medium for 3D stages, haiku for Memory scans, sonnet/high for implementation, architecture, and UX/UI, sonnet/xhigh for verification, and opus/high for network and cross-system planning; a model passed for one task still overrides it. Codex uses an explicit tier: Luna/low for narrow 3D and Memory scans, Sol/medium for implementation and architecture, Sol/high for network and verification, and Astra/medium for cross-system planning. A model or effort pinned in a Codex profile takes precedence over explicit spawn values and global defaults; change that profile to change the role's tier.
+The same 13 roles are provided as Claude Code Markdown here and Codex TOML in `codex/agents/`. Their model/effort settings follow the shared `skills/agent-coordination/model-policy.json`: Claude uses sonnet/medium for creative stages, haiku for triage, sonnet/high for implementation, sonnet/xhigh for review, and opus/high for planning and network. Codex uses Luna/low for creative and triage, 6.1 Sol/medium for implementation, 6.1 Sol/high for review and network, and Astra/medium for planning. A model or effort pinned in a Codex profile takes precedence over explicit spawn values and global defaults; change the policy and profile together. Claude's supported per-task model override remains available.
 
 | Role | Responsibility |
 | --- | --- |
@@ -21,5 +21,7 @@ The same 13 roles are provided as Claude Code Markdown here and Codex TOML in `c
 Localized reversible low-risk work may be done directly. Use one lead and independent testing for meaningful risk; planning and advisors are conditional. Every delegation carries scoped ownership, facts, acceptance criteria and focused checks. All agents preserve unrelated changes and treat project-local Memory as read-only. Advisors may not use shell access to bypass their read-only role.
 
 The on-demand `game-workflow` skill supplies deeper Unity runtime, architecture, UX/UI, networking and testing guidance. Core standards remain in each relevant profile. Discover the skill through the installed runtime and read only the task's relevant references; profiles do not preload the entire skill.
+
+The shared `agent-coordination` skill is loaded for substantive tracked work or explicit Claude/Codex coordination. It supplies proportionate playbooks, the board/handoff contract, bounded dispatch examples and `model-policy.json`; profile model and effort values follow that policy. The ordinary direct path stays available for small reversible edits. A reviewer uses the board and current artifact, records independent findings, and the owner runs configured QA before completion.
 
 See the root [README](../README.md) for installation. Installation does not authorize changes to other projects, Memory setup, commits, or publishing. Sequential creative stages retain user approval between stages.

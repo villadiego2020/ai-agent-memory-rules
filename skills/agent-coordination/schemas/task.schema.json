@@ -1,0 +1,592 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shared coordination task v2",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "goal",
+    "acceptance",
+    "risk",
+    "kind",
+    "playbook",
+    "stack",
+    "runtime",
+    "status",
+    "stage",
+    "owner",
+    "pendingOwner",
+    "worktree",
+    "ownedFiles",
+    "implementationParticipants",
+    "handoffs",
+    "artifacts",
+    "runs",
+    "plan",
+    "review",
+    "qa",
+    "execution",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "baseRevision": { "type": ["string", "null"] },
+    "hardProblem": { "type": "string" },
+    "schemaVersion": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^T-[0-9]{6,12}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "feature",
+        "bugfix",
+        "refactor",
+        "analysis",
+        "performance",
+        "prototype"
+      ]
+    },
+    "playbook": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stack": {
+      "enum": [
+        "generic",
+        "unity",
+        "web",
+        "app",
+        "tooling"
+      ]
+    },
+    "runtime": {
+      "enum": [
+        "codex",
+        "claude"
+      ]
+    },
+    "status": {
+      "enum": [
+        "open",
+        "claimed",
+        "review",
+        "blocked",
+        "complete"
+      ]
+    },
+    "stage": {
+      "enum": [
+        "plan",
+        "implement",
+        "analysis",
+        "review",
+        "qa",
+        "complete"
+      ]
+    },
+    "owner": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "pendingOwner": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "worktree": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ownedFiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "implementationParticipants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "handoffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "summary",
+          "changedFiles",
+          "decisions",
+          "evidence",
+          "limitations",
+          "createdAt"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "plan": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "summary",
+            "evidence",
+            "checks",
+            "noChecksReason",
+            "requireRuntimeEvidence",
+            "recordedAt"
+          ],
+          "properties": {
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "executable",
+                  "arguments",
+                  "workingDirectory",
+                  "timeoutSeconds"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+                  },
+                  "executable": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "arguments": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "workingDirectory": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "timeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3600
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "noChecksReason": {
+              "type": "string"
+            },
+            "requireRuntimeEvidence": {
+              "type": "boolean"
+            },
+            "recordedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "review": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "actor",
+            "runtime",
+            "verdict",
+            "summary",
+            "evidence",
+            "snapshot",
+            "verification",
+            "recordedAt"
+          ],
+          "properties": {
+            "actor": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runtime": {
+              "enum": [
+                "codex",
+                "claude"
+              ]
+            },
+            "verdict": {
+              "enum": [
+                "pass",
+                "fail"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "snapshot": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "verification": {
+              "enum": [
+                "manual-attestation",
+                "cli"
+              ]
+            },
+            "recordedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "runId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "qa": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "snapshot",
+            "passed",
+            "checks",
+            "manualSummary",
+            "manualEvidence",
+            "failure",
+            "recordedAt"
+          ],
+          "properties": {
+            "snapshot": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "passed": {
+              "type": "boolean"
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "executable",
+                  "arguments",
+                  "exitCode",
+                  "timedOut",
+                  "durationMs",
+                  "workingDirectory",
+                  "stdout",
+                  "stderr"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "executable": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "arguments": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "exitCode": {
+                    "type": "integer"
+                  },
+                  "timedOut": {
+                    "type": "boolean"
+                  },
+                  "durationMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "workingDirectory": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "stdout": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "stderr": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "manualSummary": {
+              "type": "string"
+            },
+            "manualEvidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "failure": {
+              "type": "string"
+            },
+            "recordedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "execution": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "actor",
+            "phase",
+            "pid",
+            "processStartedAt",
+            "startedAt"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actor": {
+              "type": "string",
+              "minLength": 1
+            },
+            "phase": {
+              "enum": [
+                "plan",
+                "implement",
+                "analysis",
+                "review",
+                "qa"
+              ]
+            },
+            "pid": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "processStartedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "startedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "legacy": {
+      "type": "object"
+    },
+    "recovery": {
+      "type": "object",
+      "required": [
+        "owner",
+        "reason",
+        "recordedAt"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "summary",
+        "evidence",
+        "actor",
+        "recordedAt"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

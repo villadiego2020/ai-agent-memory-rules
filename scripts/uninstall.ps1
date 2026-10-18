@@ -144,12 +144,15 @@ function Get-ValidatedInstallManifest {
 
     $canonicalConfigurationHome = Get-CanonicalPath -Path $ConfigurationHome
     $skillsHome = if ($SelectedPlatform -eq 'Codex') { Get-CodexSkillsHome -OverridePath $CodexSkillsHome } else { Join-Path $ConfigurationHome 'skills' }
-    $canonicalSkillRoot = Get-CanonicalPath -Path (Join-Path $skillsHome 'game-workflow')
+    $canonicalSkillRoots = @('game-workflow', 'agent-coordination') | ForEach-Object {
+        Get-CanonicalPath -Path (Join-Path $skillsHome $_)
+    }
     $expectedByTarget = [System.Collections.Generic.Dictionary[string, object]]::new($pathStringComparer)
     foreach ($expectedFile in @(Get-ExpectedManagedFiles -SelectedPlatform $SelectedPlatform -ConfigurationHome $canonicalConfigurationHome)) {
         $canonicalTarget = Get-CanonicalPath -Path $expectedFile.Target
         $canonicalSource = Get-CanonicalPath -Path $expectedFile.Source
-        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome) -and -not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalSkillRoot)) {
+        $insideSkillRoot = @($canonicalSkillRoots | Where-Object { Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $_ }).Count -gt 0
+        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome) -and -not $insideSkillRoot) {
             throw "Internal safety error: expected managed path is outside the selected configuration home: $canonicalTarget"
         }
         $expectedByTarget.Add($canonicalTarget, [pscustomobject]@{
@@ -178,7 +181,8 @@ function Get-ValidatedInstallManifest {
 
         $canonicalTarget = Get-CanonicalPath -Path ([string]$record.target)
         Assert-ManagedParentPathsSafe -Path $canonicalTarget
-        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome) -and -not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalSkillRoot)) {
+        $insideSkillRoot = @($canonicalSkillRoots | Where-Object { Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $_ }).Count -gt 0
+        if (-not (Test-CanonicalPathInsideRoot -CanonicalPath $canonicalTarget -CanonicalRoot $canonicalConfigurationHome) -and -not $insideSkillRoot) {
             throw "Cannot safely uninstall because a manifest target is outside the selected configuration home: $canonicalTarget"
         }
         if (-not $expectedByTarget.ContainsKey($canonicalTarget)) {
@@ -203,7 +207,8 @@ function Get-ValidatedInstallManifest {
     # Older manifests predate shared skills. Require the original complete set;
     # any present skill records still pass the exact source/target allowlist above.
     foreach ($expectedTarget in $expectedByTarget.Keys) {
-        if (-not (Test-MemoryPathInsideRoot -Path $expectedTarget -Root $canonicalSkillRoot) -and -not $seenTargets.Contains($expectedTarget)) {
+        $insideSkillRoot = @($canonicalSkillRoots | Where-Object { Test-MemoryPathInsideRoot -Path $expectedTarget -Root $_ }).Count -gt 0
+        if (-not $insideSkillRoot -and -not $seenTargets.Contains($expectedTarget)) {
             throw 'Cannot safely uninstall because the manifest does not contain every original installer-owned path exactly once.'
         }
     }

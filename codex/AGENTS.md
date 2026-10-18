@@ -8,6 +8,8 @@ Identify the current project root: nearest Git root, otherwise the current direc
 
 Inspect the real stack and scoped source before proposing changes. Reuse supplied evidence and rejected hypotheses; broaden inspection only for a named gap, contradiction, or changed file. Distinguish observed facts from inferences and assumptions.
 
+For substantive tracked work or explicit Claude/Codex coordination, load the installed `agent-coordination` skill and its relevant playbook. Locate it through the runtime's skill discovery (`~/.agents/skills` for Codex by default, `CLAUDE_CONFIG_DIR/skills` or `~/.claude/skills` for Claude). Low-risk direct work remains direct. If the skill is unavailable, follow these core rules and report the limitation.
+
 ## Choose the lightest sufficient workflow
 
 Before editing, briefly identify who thinks and implements: `[DIRECT]`, normal subagent `[SUB]`, or user-approved team `[TEAM]`.
@@ -32,6 +34,8 @@ Advisors, architects, planners, and project-manager are read-only; they do not m
 When delegation is warranted, prefer normal subagents. A team requires a real need to exchange/challenge findings and independent file ownership; explain its additional cost and obtain approval unless already authorized. Run independent read-heavy work concurrently; keep dependent or overlapping writes sequential. Do not delegate merely to repeat evidence.
 
 Give each handoff only the goal, exact files/modules and ownership, relevant facts/rejected hypotheses, acceptance criteria, focused checks, and unresolved question. Warn that other changes may exist and must not be reverted. Wait for the owner; do not duplicate its scan or implementation. Add participants only to resolve a named risk or dependency.
+
+When Claude and Codex share a tracked task, use the project board through `agent-coordination` for plan, file ownership, handoff, independent review, QA evidence, and completion. Read the current board and source state when receiving work. Use separate Git worktrees for parallel writes with disjoint owned files. The board is coordination state; `.agent-memory` remains concise verified project context. User, project, and external publishing authority still apply.
 
 ## Engineering and verification
 
@@ -82,4 +86,4 @@ Complete authorized inspection and normal implementation without repeated approv
 
 Keep work turn-based by default. Automated loops need a machine-verifiable stop condition, no human/external dependency, and a fixed attempt cap. Prefer deterministic scripts for deterministic checks. Never use a loop to approve creative work, autonomously modify Memory, or deploy without explicit authorization.
 
-Codex profiles use a deliberate model/effort tier: `gpt-6-luna/low` for narrow 3D and Memory scans, `gpt-6-sol/medium` for implementation and architecture, `gpt-6-sol/high` for network and verification, and `gpt-6-astra/medium` for cross-system planning. Model and effort values in a custom profile take precedence over explicit spawn values and global defaults. Change the role's profile when a different tier is needed. Do not copy Claude-only model aliases into Codex profiles.
+Use the shared `agent-coordination/model-policy.json` for phase and profile model/effort defaults. Codex custom profile values take precedence over explicit spawn values and global defaults; edit the policy and corresponding profiles together. Triage and creative work use Luna/low, implementation 6.1 Sol/medium, review and network 6.1 Sol/high, planning Astra/medium. Select Astra/high only for a named difficult problem. Do not copy Claude-only model aliases into Codex profiles.

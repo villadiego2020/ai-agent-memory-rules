@@ -112,9 +112,46 @@ foreach ($requiredFile in @(
     'scripts/uninstall.ps1',
     'scripts/lib/MemoryRules.Common.ps1',
     'skills/game-workflow/SKILL.md',
-    'tests/integration.ps1'
+    'skills/agent-coordination/SKILL.md',
+    'skills/agent-coordination/model-policy.json',
+    'skills/agent-coordination/references/playbooks.md',
+    'skills/agent-coordination/references/principles.md',
+    'skills/agent-coordination/references/commands.md',
+    'skills/agent-coordination/scripts/coordination.ps1',
+    'skills/agent-coordination/scripts/orchestrate.ps1',
+    'skills/agent-coordination/scripts/lib/Coordination.Common.ps1',
+    'skills/agent-coordination/scripts/lib/Invoke-AgentCli.ps1',
+    'skills/agent-coordination/scripts/lib/Invoke-ScriptEntry.ps1',
+    'skills/agent-coordination/schemas/task.schema.json',
+    'skills/agent-coordination/schemas/handoff.schema.json',
+    'skills/agent-coordination/schemas/checks.schema.json',
+    'skills/agent-coordination/schemas/result.schema.json',
+    'scripts/orchestrate.ps1',
+    'tests/integration.ps1',
+    'coordination/README.md',
+    'coordination/task.schema.json',
+    'coordination/handoff.schema.json',
+    'coordination/adapters/claude.md',
+    'coordination/adapters/codex.md',
+    'scripts/coordination.ps1',
+    'tests/coordination.ps1'
 )) {
     Test-RequiredPath -RelativePath $requiredFile
+}
+
+$coordinationSkillRoot = Join-Path $resolvedRepositoryRoot 'skills/agent-coordination'
+$coordinationSkillPath = Join-Path $coordinationSkillRoot 'SKILL.md'
+if (Test-Path -LiteralPath $coordinationSkillPath -PathType Leaf) {
+    $coordinationSkillContent = Get-Content -LiteralPath $coordinationSkillPath -Raw
+    if ($coordinationSkillContent -notmatch '(?s)\A---\r?\n.*?\r?\n---' -or $coordinationSkillContent -notmatch '(?m)^name:\s*agent-coordination\s*$' -or $coordinationSkillContent -notmatch '(?m)^description:\s*\S.+$') {
+        Add-ValidationFailure -Message 'Invalid agent-coordination skill frontmatter.'
+    }
+    foreach ($reference in [regex]::Matches($coordinationSkillContent, 'references/[A-Za-z0-9._/-]+\.md')) {
+        $referencePath = Join-Path $coordinationSkillRoot $reference.Value
+        if (-not (Test-MemoryPathInsideRoot -Path $referencePath -Root $coordinationSkillRoot) -or -not (Test-Path -LiteralPath $referencePath -PathType Leaf)) {
+            Add-ValidationFailure -Message "Invalid agent-coordination reference: $($reference.Value)"
+        }
+    }
 }
 foreach ($requiredDirectory in @(
     'templates/memory/work',
@@ -184,7 +221,7 @@ foreach ($agentName in $expectedAgentNames) {
     if ($agentContent -notmatch "(?m)^name\s*=\s*`"$([regex]::Escape($agentName))`"\s*$") {
         Add-ValidationFailure -Message "$agentName.toml has a name that does not match its filename."
     }
-    if ($agentContent -notmatch '(?im)^model\s*=\s*"gpt-6-(?:luna|sol|astra)"') {
+    if ($agentContent -notmatch '(?im)^model\s*=\s*"gpt-6(?:\.1)?-(?:luna|sol|astra)"') {
         Add-ValidationFailure -Message "$agentName.toml must select a supported GPT-6 model."
     }
     if ($agentContent -notmatch '(?im)^model_reasoning_effort\s*=\s*"(?:low|medium|high|xhigh|max|ultra)"') {

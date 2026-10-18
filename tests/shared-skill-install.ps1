@@ -36,6 +36,18 @@ try {
     $manifest = $before | ConvertFrom-Json
     $skillRecords = @($manifest.managedFiles | Where-Object target -like "$skillsRoot*")
     Assert-True ($skillRecords.Count -ge 6) 'Recursive references are missing from manifest.'
+    $coordinationSkill = Join-Path $skillsRoot 'agent-coordination/SKILL.md'
+    $claudeCoordinationSkill = Join-Path $claudeRoot 'skills/agent-coordination/SKILL.md'
+    Assert-True ((Test-Path -LiteralPath $coordinationSkill) -and (Test-Path -LiteralPath $claudeCoordinationSkill)) 'Shared coordination skill missing from a runtime.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $skillsRoot 'agent-coordination/model-policy.json')) 'Shared model policy missing from installation.'
+    foreach ($runtimeSkillsRoot in @($skillsRoot, (Join-Path $claudeRoot 'skills'))) {
+        foreach ($sourceSkillFile in @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'skills/agent-coordination') -Recurse -File)) {
+            $relativeSkillPath = $sourceSkillFile.FullName.Substring((Join-Path $repositoryRoot 'skills').Length).TrimStart('\', '/')
+            $installedSkillFile = Join-Path $runtimeSkillsRoot $relativeSkillPath
+            Assert-True (Test-Path -LiteralPath $installedSkillFile -PathType Leaf) "Missing installed coordination file: $installedSkillFile"
+            Assert-True ((Get-FileHash -LiteralPath $sourceSkillFile.FullName).Hash -eq (Get-FileHash -LiteralPath $installedSkillFile).Hash) "Coordination package differs from source: $installedSkillFile"
+        }
+    }
     Assert-True ($customFile -notin @($manifest.managedFiles.target)) 'Custom file became owned.'
     $ownedFile = Join-Path $skillsRoot 'game-workflow/SKILL.md'
     [IO.File]::AppendAllText($ownedFile, "`ncustom modification")
@@ -57,17 +69,19 @@ try {
     [IO.File]::WriteAllText($manifestPath, $validManifest)
     Invoke-Script 'uninstall' @('-Confirm:$false')
     Assert-True (-not (Test-Path -LiteralPath $ownedFile)) 'Owned skill survived uninstall.'
+    Assert-True (-not (Test-Path -LiteralPath $coordinationSkill)) 'Owned coordination skill survived uninstall.'
     Assert-True ([IO.File]::ReadAllText($customFile) -eq 'custom preserved') 'Custom skill file changed.'
     # Legacy manifests do not claim skill files and must not remove them.
     Invoke-Script 'install' @('-Mode', 'Copy')
     foreach ($config in @($configurationRoot, $claudeRoot)) {
         $legacyPath = Join-Path $config '.ai-agent-memory-rules/install-manifest.json'
         $legacy = Get-Content -LiteralPath $legacyPath -Raw | ConvertFrom-Json
-        $legacy.managedFiles = @($legacy.managedFiles | Where-Object { $_.target -notmatch '[\\/]game-workflow[\\/]' })
+        $legacy.managedFiles = @($legacy.managedFiles | Where-Object { $_.target -notmatch '[\\/](?:game-workflow|agent-coordination)[\\/]' })
         [IO.File]::WriteAllText($legacyPath, ($legacy | ConvertTo-Json -Depth 20))
     }
     Invoke-Script 'uninstall' @('-Confirm:$false')
     Assert-True (Test-Path -LiteralPath $ownedFile) 'Legacy uninstall removed unowned skill.'
+    Assert-True (Test-Path -LiteralPath $coordinationSkill) 'Legacy uninstall removed unowned coordination skill.'
     # Probe symlink capability separately, then test actual Link install/uninstall.
     $probeTarget = Join-Path $temporaryRoot 'probe.txt'
     $probeLink = Join-Path $temporaryRoot 'probe.link'

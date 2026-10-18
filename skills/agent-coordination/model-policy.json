@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "runtimes": {
+    "codex": {
+      "routine": { "model": "gpt-6.1-sol", "effort": "low" },
+      "triage": { "model": "gpt-6-luna", "effort": "low" },
+      "plan": { "model": "gpt-6-astra", "effort": "medium" },
+      "implement": { "model": "gpt-6.1-sol", "effort": "medium" },
+      "careful": { "model": "gpt-6.1-sol", "effort": "high" },
+      "review": { "model": "gpt-6.1-sol", "effort": "high" },
+      "analysis": { "model": "gpt-6.1-sol", "effort": "medium" },
+      "hard": { "model": "gpt-6-astra", "effort": "high" },
+      "creative": { "model": "gpt-6-luna", "effort": "low" },
+      "network": { "model": "gpt-6.1-sol", "effort": "high" }
+    },
+    "claude": {
+      "routine": { "model": "sonnet", "effort": "medium" },
+      "triage": { "model": "haiku", "effort": null },
+      "plan": { "model": "opus", "effort": "high" },
+      "implement": { "model": "sonnet", "effort": "high" },
+      "careful": { "model": "sonnet", "effort": "high" },
+      "review": { "model": "sonnet", "effort": "xhigh" },
+      "analysis": { "model": "sonnet", "effort": "high" },
+      "hard": { "model": "opus", "effort": "high" },
+      "creative": { "model": "sonnet", "effort": "medium" },
+      "network": { "model": "opus", "effort": "high" }
+    }
+  },
+  "profileRoles": {
+    "3d-animator": "creative",
+    "3d-modeller": "creative",
+    "3d-rigger": "creative",
+    "3d-sculptor": "creative",
+    "backend-architect": "implement",
+    "game-architect": "implement",
+    "network-expert": "network",
+    "project-manager": "triage",
+    "system-planner": "plan",
+    "system-tester": "review",
+    "unity-expert": "implement",
+    "uxui-expert": "implement",
+    "web-expert": "implement"
+  }
+}

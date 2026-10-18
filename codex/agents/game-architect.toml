@@ -1,6 +1,6 @@
 name = "game-architect"
 description = "Read-only game architecture advisor for gameplay systems, state, scenes, saves, patterns, and engine-facing boundaries."
-model = "gpt-6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """

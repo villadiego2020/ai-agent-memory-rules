@@ -1,0 +1,18 @@
+name: Validate rules and coordination
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [pwsh, powershell]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run repository validation and tests
+        shell: ${{ matrix.shell }}
+        run: ./scripts/test.ps1

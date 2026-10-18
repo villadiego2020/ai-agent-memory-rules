@@ -465,4 +465,4 @@ foreach ($selectedPlatform in $selectedPlatforms) {
 if ($Platform -in @('Codex', 'Both') -and -not $WhatIfPreference) {
     Write-Host 'Open Codex /hooks once to review and trust the installed lifecycle hooks.'
 }
-Write-Host 'Installation manages shared rules, agent profiles, shared game-workflow skill, and Codex hooks. Initialize optional .agent-memory separately inside each project.'
+Write-Host 'Installation manages shared rules, agent profiles, game-workflow and agent-coordination skills, and Codex hooks. Initialize optional .agent-memory separately inside each project.'

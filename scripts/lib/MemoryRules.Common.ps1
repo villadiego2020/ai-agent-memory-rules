@@ -31,15 +31,17 @@ function Get-CodexSkillsHome {
 function Get-SharedSkillManagedFiles {
     param([string]$RepositoryRoot, [string]$ConfigurationHome, [string]$SkillsHome = '')
     if ([string]::IsNullOrWhiteSpace($SkillsHome)) { $SkillsHome = Join-Path $ConfigurationHome 'skills' }
-    $skillRoot = Join-Path $RepositoryRoot 'skills/game-workflow'
-    if (-not (Test-Path -LiteralPath (Join-Path $skillRoot 'SKILL.md') -PathType Leaf)) {
-        throw "Missing shared skill: $skillRoot"
-    }
-    Get-ChildItem -LiteralPath $skillRoot -Recurse -File | Sort-Object FullName | ForEach-Object {
-        $relativePath = $_.FullName.Substring($skillRoot.Length).TrimStart('\', '/')
-        [pscustomobject]@{
-            Source = $_.FullName
-            Target = Join-Path $SkillsHome "game-workflow/$relativePath"
+    foreach ($skillName in @('game-workflow', 'agent-coordination')) {
+        $skillRoot = Join-Path $RepositoryRoot "skills/$skillName"
+        if (-not (Test-Path -LiteralPath (Join-Path $skillRoot 'SKILL.md') -PathType Leaf)) {
+            throw "Missing shared skill: $skillRoot"
+        }
+        Get-ChildItem -LiteralPath $skillRoot -Recurse -File | Sort-Object FullName | ForEach-Object {
+            $relativePath = $_.FullName.Substring($skillRoot.Length).TrimStart('\', '/')
+            [pscustomobject]@{
+                Source = $_.FullName
+                Target = Join-Path $SkillsHome "$skillName/$relativePath"
+            }
         }
     }
 }

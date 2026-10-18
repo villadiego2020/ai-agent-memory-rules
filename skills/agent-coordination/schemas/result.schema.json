@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "outcome", "summary", "evidence", "limitations", "changedFiles"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "outcome": { "type": "string", "enum": ["pass", "fail", "needs-input"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "changedFiles": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}
