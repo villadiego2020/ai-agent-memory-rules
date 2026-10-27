@@ -188,11 +188,12 @@ if (Test-Path -LiteralPath $agentsPath -PathType Leaf) {
     }
 }
 
-$expectedAgentNames = @(
+$expectedClaudeAgentNames = @(
     '3d-animator', '3d-modeller', '3d-rigger', '3d-sculptor',
     'backend-architect', 'game-architect', 'network-expert', 'project-manager',
     'system-planner', 'system-tester', 'unity-expert', 'uxui-expert', 'web-expert'
 )
+$expectedCodexAgentNames = @($expectedClaudeAgentNames) + @('computer-operator', 'image-creator') | Sort-Object
 $readOnlyAgentNames = @(
     'backend-architect',
     'game-architect',
@@ -202,10 +203,10 @@ $readOnlyAgentNames = @(
     'uxui-expert'
 )
 $agentFiles = @(Get-ChildItem -LiteralPath (Join-Path $resolvedRepositoryRoot 'codex/agents') -Filter '*.toml' -File -ErrorAction SilentlyContinue)
-if ($agentFiles.Count -ne $expectedAgentNames.Count) {
-    Add-ValidationFailure -Message "Expected $($expectedAgentNames.Count) Codex agent files, found $($agentFiles.Count)."
+if ($agentFiles.Count -ne $expectedCodexAgentNames.Count) {
+    Add-ValidationFailure -Message "Expected $($expectedCodexAgentNames.Count) Codex agent files, found $($agentFiles.Count)."
 }
-foreach ($agentName in $expectedAgentNames) {
+foreach ($agentName in $expectedCodexAgentNames) {
     $agentPath = Join-Path $resolvedRepositoryRoot "codex/agents/$agentName.toml"
     if (-not (Test-Path -LiteralPath $agentPath -PathType Leaf)) {
         Add-ValidationFailure -Message "Missing Codex agent: $agentName"
@@ -221,7 +222,7 @@ foreach ($agentName in $expectedAgentNames) {
     if ($agentContent -notmatch "(?m)^name\s*=\s*`"$([regex]::Escape($agentName))`"\s*$") {
         Add-ValidationFailure -Message "$agentName.toml has a name that does not match its filename."
     }
-    if ($agentContent -notmatch '(?im)^model\s*=\s*"gpt-6(?:\.1)?-(?:luna|sol|astra)"') {
+    if ($agentContent -notmatch '(?im)^model\s*=\s*"gpt-6(?:\.1)?-(?:luna|sol|astra|terra)"') {
         Add-ValidationFailure -Message "$agentName.toml must select a supported GPT-6 model."
     }
     if ($agentContent -notmatch '(?im)^model_reasoning_effort\s*=\s*"(?:low|medium|high|xhigh|max|ultra)"') {
@@ -236,10 +237,10 @@ foreach ($agentName in $expectedAgentNames) {
 }
 
 $claudeAgentFiles = @(Get-ChildItem -LiteralPath (Join-Path $resolvedRepositoryRoot 'agents') -Filter '*.md' -File -ErrorAction SilentlyContinue | Where-Object Name -ne 'README.md')
-if ($claudeAgentFiles.Count -ne $expectedAgentNames.Count) {
-    Add-ValidationFailure -Message "Expected $($expectedAgentNames.Count) Claude agent files, found $($claudeAgentFiles.Count)."
+if ($claudeAgentFiles.Count -ne $expectedClaudeAgentNames.Count) {
+    Add-ValidationFailure -Message "Expected $($expectedClaudeAgentNames.Count) Claude agent files, found $($claudeAgentFiles.Count)."
 }
-foreach ($agentName in $expectedAgentNames) {
+foreach ($agentName in $expectedClaudeAgentNames) {
     $claudeAgentPath = Join-Path $resolvedRepositoryRoot "agents/$agentName.md"
     if (-not (Test-Path -LiteralPath $claudeAgentPath -PathType Leaf)) {
         Add-ValidationFailure -Message "Missing Claude agent: $agentName"

@@ -81,9 +81,14 @@ foreach ($phase in @('routine', 'triage', 'plan', 'implement', 'review', 'analys
         }
     }
 }
+foreach ($workload in @('image', 'computer')) {
+    if (-not $modelPolicy.runtimes.codex.PSObject.Properties[$workload]) {
+        Add-ContractFailure -Message "Missing codex/$workload workload model policy."
+    }
+}
 foreach ($codexAgentFile in $codexAgentFiles) {
     $content = [System.IO.File]::ReadAllText($codexAgentFile.FullName, [System.Text.Encoding]::UTF8)
-    if ($content -notmatch '(?im)^\s*model\s*=\s*"gpt-6(?:\.1)?-(?:luna|sol|astra)"') {
+    if ($content -notmatch '(?im)^\s*model\s*=\s*"gpt-6(?:\.1)?-(?:luna|sol|astra|terra)"') {
         Add-ContractFailure -Message "codex/agents/$($codexAgentFile.Name) must select a supported GPT-6 model tier."
     }
     if ($content -notmatch '(?im)^\s*model_reasoning_effort\s*=\s*"(?:low|medium|high|xhigh|max|ultra)"') {

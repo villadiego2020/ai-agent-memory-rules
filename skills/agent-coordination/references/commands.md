@@ -38,6 +38,16 @@ pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\orchestrate.ps1 
 
 Default dispatch prints the prompt and arguments. `-Execute` runs one bounded phase. Inspect its artifacts and board state before the next phase. Use `-Runtime codex` to route the same contract to Codex; CLI permissions still apply independently.
 
+For a Codex implementation, set the active workload explicitly when the task is code, raster image generation, or screen-driven Computer Use:
+
+```powershell
+pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\orchestrate.ps1 -ProjectPath . -Id '<task-id>' -Phase implement -Runtime codex -Workload image
+pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\orchestrate.ps1 -ProjectPath . -Id '<task-id>' -Phase implement -Runtime codex -Workload computer
+pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\orchestrate.ps1 -ProjectPath . -Id '<task-id>' -Phase implement -Runtime codex -Workload code
+```
+
+`image` selects Astra/medium, `computer` selects 6.1 Terra/medium, and `code` selects 6.1 Sol/medium at low or medium risk. High-risk code keeps Sol/high; a named `HardProblem` keeps Astra/high for every workload. High-risk image and computer tasks keep their workload model and still require independent review. The omitted/default workload preserves legacy phase/risk routing. Other phases and Claude reject an explicit workload. Preview and run receipts show the workload and selected role. This bounded CLI adapter does not guarantee access to image-generation or Computer Use tools: the worker must report `needs-input` if the needed tool is absent. For an ordinary interactive chat, the parent must actually delegate to the appropriate profile; the policy file alone cannot change a running chat's model.
+
 An authorization covering the whole task also covers its ordinary implementation/review/QA steps. The manager may invoke these steps without asking the user to approve each phase again. Publishing, messaging and irreversible actions keep their existing authority boundaries.
 
 `qa -TimeoutSeconds 1200` bounds the whole QA run (default 20 minutes; maximum two hours), in addition to each check's timeout. A failing/timeout check or changed source prevents completion. Output capture is bounded. Task records, acceptance check files and structured agent reports also have size limits; split excessively large tasks rather than loading transcripts into the board.

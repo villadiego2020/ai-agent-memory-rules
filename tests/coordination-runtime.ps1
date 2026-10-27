@@ -76,9 +76,19 @@ if ($index -ge 0) {
     Assert-True ($carefulCodex.execute -eq $false -and $carefulCodex.role -eq 'careful' -and $carefulCodex.model -eq 'gpt-6.1-sol' -and $carefulCodex.effort -eq 'high') 'High-risk Codex implementation previews careful tier.'
     $carefulClaude = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'claude') | ConvertFrom-Json
     Assert-True ($carefulClaude.role -eq 'careful' -and $carefulClaude.model -eq 'sonnet' -and $carefulClaude.effort -eq 'high') 'High-risk Claude implementation previews careful tier.'
+    $imagePreview = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', 'image') | ConvertFrom-Json
+    Assert-True ($imagePreview.workload -eq 'image' -and $imagePreview.role -eq 'image' -and $imagePreview.model -eq 'gpt-6-astra' -and $imagePreview.effort -eq 'medium') 'High-risk image workload keeps image tier pending independent review.'
+    $computerPreview = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', 'computer') | ConvertFrom-Json
+    Assert-True ($computerPreview.workload -eq 'computer' -and $computerPreview.role -eq 'computer' -and $computerPreview.model -eq 'gpt-6.1-terra' -and $computerPreview.effort -eq 'medium') 'High-risk Computer Use workload keeps computer tier pending independent review.'
+    $codePreview = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', 'code') | ConvertFrom-Json
+    Assert-True ($codePreview.role -eq 'careful' -and $codePreview.model -eq 'gpt-6.1-sol' -and $codePreview.effort -eq 'high') 'High-risk code workload retains careful tier.'
+    Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'claude', '-Workload', 'image') -Fails | Out-Null
+    Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'review', '-Runtime', 'codex', '-Workload', 'computer') -Fails | Out-Null
     Invoke-CommandFile $boardCommand @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Complex coordination', '-Evidence', 'fixture', '-NoChecksReason', 'CLI contract check only', '-HardProblem', 'Cross-module race requires deeper reasoning') | Out-Null
     $hardCodex = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex') | ConvertFrom-Json
     Assert-True ($hardCodex.role -eq 'hard' -and $hardCodex.model -eq 'gpt-6-astra' -and $hardCodex.effort -eq 'high') 'Named difficult problem previews Codex hard tier.'
+    $hardComputer = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', 'computer') | ConvertFrom-Json
+    Assert-True ($hardComputer.role -eq 'hard' -and $hardComputer.model -eq 'gpt-6-astra' -and $hardComputer.effort -eq 'high') 'Named difficult problem takes precedence over explicit workload.'
     $hardClaude = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'claude') | ConvertFrom-Json
     Assert-True ($hardClaude.role -eq 'hard' -and $hardClaude.model -eq 'opus' -and $hardClaude.effort -eq 'high') 'Named difficult problem previews Claude hard tier.'
     $reviewPreview = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'review') | ConvertFrom-Json
@@ -146,6 +156,28 @@ if ($index -ge 0) {
     Invoke-CommandFile $boardCommand @('new', '-ProjectPath', $project, '-Kind', 'feature', '-Risk', 'low', '-Title', 'Hard at intake', '-Goal', 'Route named difficulty', '-Acceptance', 'Preview hard tier', '-Owner', 'codex:intake', '-OwnedFile', 'docs', '-HardProblem', 'Novel dependency cycle') | Out-Null
     $intakeHard = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000002', '-Phase', 'plan') | ConvertFrom-Json
     Assert-True ($intakeHard.role -eq 'hard' -and $intakeHard.model -eq 'gpt-6-astra') 'HardProblem supplied at new routes the plan preview to hard tier.'
+    Invoke-CommandFile $boardCommand @('new', '-ProjectPath', $project, '-Kind', 'feature', '-Risk', 'low', '-Runtime', 'codex', '-Title', 'Workload dispatch', '-Goal', 'Route one bounded implementation', '-Acceptance', 'Correct model and effort reach CLI', '-Owner', 'codex:operator', '-OwnedFile', 'images') | Out-Null
+    Invoke-CommandFile $boardCommand @('plan', '-ProjectPath', $project, '-Id', 'T-000003', '-Owner', 'codex:operator', '-Summary', 'Use stub CLI', '-Evidence', 'fixture', '-NoChecksReason', 'CLI contract check only') | Out-Null
+    $legacyLow = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000003', '-Phase', 'implement', '-Runtime', 'codex') | ConvertFrom-Json
+    Assert-True ($legacyLow.role -eq 'routine' -and $legacyLow.effort -eq 'low') 'Unspecified low-risk workload retains legacy routing.'
+    $lowCode = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000003', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', 'code') | ConvertFrom-Json
+    Assert-True ($lowCode.role -eq 'implement' -and $lowCode.model -eq 'gpt-6.1-sol' -and $lowCode.effort -eq 'medium') 'Explicit code workload uses Sol medium even at low risk.'
+    $env:COORDINATION_TEST_MODE = 'pass'
+    foreach ($route in @(
+        @{ name = 'image'; model = 'gpt-6-astra'; role = 'image' },
+        @{ name = 'computer'; model = 'gpt-6.1-terra'; role = 'computer' },
+        @{ name = 'code'; model = 'gpt-6.1-sol'; role = 'implement' }
+    )) {
+        Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000003', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', $route.name, '-Actor', 'codex:operator', '-CliPath', $stub, '-Execute', '-TimeoutSeconds', '4') | Out-Null
+        $actual = [IO.File]::ReadAllText($capture, [Text.Encoding]::UTF8) | ConvertFrom-Json
+        $argv = @($actual.argv)
+        $modelIndex = [Array]::IndexOf($argv, '--model')
+        Assert-True ($modelIndex -ge 0 -and $argv[$modelIndex + 1] -eq $route.model) "The $($route.name) workload model reached the Codex CLI."
+        Assert-True (@($argv) -contains 'model_reasoning_effort="medium"') "The $($route.name) workload effort reached the Codex CLI."
+        Assert-True ($actual.stdin -match ('"workload":\s*"' + $route.name + '"')) "The $($route.name) workload appears in the task brief."
+        $run = @((Get-Content -Raw -LiteralPath (Join-Path $project '.agent-coordination/tasks/T-000003.json') | ConvertFrom-Json).runs)[-1]
+        Assert-True ($run.workload -eq $route.name -and $run.role -eq $route.role -and $run.model -eq $route.model) "The $($route.name) workload is recorded in the run receipt."
+    }
     $legacyTaskPath = Join-Path $project '.agent-coordination/tasks/T-000001.json'
     $legacyTask = [IO.File]::ReadAllText($legacyTaskPath, [Text.Encoding]::UTF8) | ConvertFrom-Json
     $legacyTask.PSObject.Properties.Remove('hardProblem')

@@ -14,6 +14,12 @@ For substantive tracked work or explicit Claude/Codex coordination, load the ins
 
 Before editing, briefly identify who thinks and implements: `[DIRECT]`, normal subagent `[SUB]`, or user-approved team `[TEAM]`.
 
+Route Codex execution by the active step, not by the overall request. Raster image generation through an image-generation tool uses `image-creator` (GPT-6 Astra/medium). Writing or changing code uses the stack implementation lead (GPT-6.1 Sol/medium by default). Screen-driven interaction with an application or browser uses `computer-operator` (GPT-6.1 Terra/medium). If Computer Use operates an image application, that step is Computer Use; if code renders an image, that step is code. Explicit user choices and the existing planning, named-hard-problem, high-risk, review, and network tiers take precedence.
+
+Apply workload routing without requiring the user to name a skill or profile. When the current model/effort already matches the execution tier, keep small tasks direct. Otherwise dispatch one matching specialist, provided that session can access the required tools and artifacts. Check tool access before handing off image generation or Computer Use; if the specialist cannot access a required tool, report the limitation and keep that tool step in the capable parent session, explicitly disclosing the model mismatch. Do not claim that loading a skill changes the current model, or silently substitute another model. Do not create a team just to select a model.
+
+If a newly installed specialist is absent from the session's available agent types, use a normal unpinned worker with the policy's explicit model/effort and a bounded brief containing the relevant profile instructions, when the runtime supports those overrides. Do not choose a differently pinned specialist. If the runtime cannot apply the requested settings, disclose that limitation rather than implying a model switch occurred.
+
 - Read-only questions, explanations, status, and diagnosis: inspect and answer directly.
 - Localized, reversible, low-risk edits: the orchestrator may implement directly and perform focused self-verification. No mandatory lead, planner, tester, task document, or approval gate.
 - Meaningful behavioral or regression risk: use one stack-appropriate implementation lead and independent `system-tester` verification. This includes network synchronization, save compatibility, security boundaries, critical UI flows, broad refactors, and explicit independent-test requests.
@@ -23,6 +29,8 @@ Before editing, briefly identify who thinks and implements: `[DIRECT]`, normal s
 | --- | --- | --- |
 | Web UI, application, API | web-expert | uxui-expert for material design decisions; backend-architect for data/auth architecture |
 | Unity gameplay and tooling | unity-expert | game-architect for system ownership; network-expert for transport/synchronization |
+| Raster image generation | image-creator | None |
+| Screen-driven Computer Use | computer-operator | None |
 | Cross-system planning | Stack lead | system-planner |
 | Verification | system-tester (test files only when assigned) | None |
 | Memory health/backlog | Orchestrator | project-manager |
@@ -86,4 +94,4 @@ Complete authorized inspection and normal implementation without repeated approv
 
 Keep work turn-based by default. Automated loops need a machine-verifiable stop condition, no human/external dependency, and a fixed attempt cap. Prefer deterministic scripts for deterministic checks. Never use a loop to approve creative work, autonomously modify Memory, or deploy without explicit authorization.
 
-Use the shared `agent-coordination/model-policy.json` for phase and profile model/effort defaults. Codex custom profile values take precedence over explicit spawn values and global defaults; edit the policy and corresponding profiles together. Triage and creative work use Luna/low, implementation 6.1 Sol/medium, review and network 6.1 Sol/high, planning Astra/medium. Select Astra/high only for a named difficult problem. Do not copy Claude-only model aliases into Codex profiles.
+Use the shared `agent-coordination/model-policy.json` for phase, workload, and profile model/effort defaults. Codex custom profile values take precedence over explicit spawn values and global defaults; edit the policy and corresponding profiles together. Image generation uses Astra/medium, Computer Use uses 6.1 Terra/medium, ordinary code implementation uses 6.1 Sol/medium, triage and 3D creative stages use Luna/low, review and network use 6.1 Sol/high, and planning uses Astra/medium. High-risk code retains 6.1 Sol/high. Select Astra/high only for a named difficult problem. Do not copy Claude-only model aliases into Codex profiles.

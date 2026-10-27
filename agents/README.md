@@ -1,11 +1,13 @@
 # Paired agent profiles
 
-The same 13 roles are provided as Claude Code Markdown here and Codex TOML in `codex/agents/`. Their model/effort settings follow the shared `skills/agent-coordination/model-policy.json`: Claude uses sonnet/medium for creative stages, haiku for triage, sonnet/high for implementation, sonnet/xhigh for review, and opus/high for planning and network. Codex uses Luna/low for creative and triage, 6.1 Sol/medium for implementation, 6.1 Sol/high for review and network, and Astra/medium for planning. A model or effort pinned in a Codex profile takes precedence over explicit spawn values and global defaults; change the policy and profile together. Claude's supported per-task model override remains available.
+The 13 shared roles are provided as Claude Code Markdown here and Codex TOML in `codex/agents/`. Codex also has workload-specific `image-creator` and `computer-operator` profiles. Their model/effort settings follow the shared `skills/agent-coordination/model-policy.json`: Claude uses sonnet/medium for creative stages, haiku for triage, sonnet/high for implementation, sonnet/xhigh for review, and opus/high for planning and network. Codex uses Astra/medium for raster image generation, 6.1 Terra/medium for Computer Use, Luna/low for 3D creative stages and triage, 6.1 Sol/medium for ordinary code implementation, 6.1 Sol/high for high-risk implementation/review/network, and Astra/medium for planning. A model or effort pinned in a Codex profile takes precedence over explicit spawn values and global defaults; change the policy and profile together. Claude's supported per-task model override remains available.
 
 | Role | Responsibility |
 | --- | --- |
 | web-expert | Web implementation |
 | unity-expert | Unity/C# implementation |
+| image-creator | Raster image generation and editing |
+| computer-operator | Screen-driven application and browser workflows |
 | backend-architect | Read-only backend/data/auth design |
 | game-architect | Read-only game ownership, state, scenes and saves |
 | network-expert | Read-only version-aware networking contracts |

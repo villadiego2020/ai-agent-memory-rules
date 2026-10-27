@@ -11,6 +11,8 @@
       "analysis": { "model": "gpt-6.1-sol", "effort": "medium" },
       "hard": { "model": "gpt-6-astra", "effort": "high" },
       "creative": { "model": "gpt-6-luna", "effort": "low" },
+      "image": { "model": "gpt-6-astra", "effort": "medium" },
+      "computer": { "model": "gpt-6.1-terra", "effort": "medium" },
       "network": { "model": "gpt-6.1-sol", "effort": "high" }
     },
     "claude": {
@@ -32,7 +34,9 @@
     "3d-rigger": "creative",
     "3d-sculptor": "creative",
     "backend-architect": "implement",
+    "computer-operator": "computer",
     "game-architect": "implement",
+    "image-creator": "image",
     "network-expert": "network",
     "project-manager": "triage",
     "system-planner": "plan",
