@@ -32,6 +32,11 @@ function Set-Checks([string]$Name, [string[]]$Arguments, [int]$TimeoutSeconds = 
     [IO.File]::WriteAllText((Join-Path $project 'checks.json'), ((ConvertTo-Json -InputObject $checks -Depth 8) + "`n"), [Text.UTF8Encoding]::new($false))
 }
 
+function Set-BugfixReadiness([string]$Acceptance) {
+    $readiness = [ordered]@{ schemaVersion = 1; kind = 'bugfix'; acceptanceMapping = @(@{ acceptance = $Acceptance; verification = 'Run the reproduction and inspect the observed result' }); expected = 'Expected fixture behavior'; actual = 'Observed fixture failure'; reproductionEvidence = @('Fixture reproduction'); causeStatus = 'confirmed'; confirmedCause = 'Fixture defect'; causeEvidence = @('Fixture inspection identifies defect'); minimalChange = 'Correct fixture behavior'; impact = 'Fixture scope only'; regressionChecks = @(@{ scenario = 'Reproduction'; verification = 'Execute acceptance check' }) }
+    [IO.File]::WriteAllText((Join-Path $project '.agent-coordination/readiness.json'), (($readiness | ConvertTo-Json -Depth 12) + "`n"), [Text.UTF8Encoding]::new($false))
+}
+
 try {
     New-Item -ItemType Directory -Path (Join-Path $project 'src') -Force | Out-Null
     & git init --quiet $project
@@ -45,6 +50,7 @@ try {
 
     Invoke-Board @('init', '-ProjectPath', $project) | Out-Null
     Invoke-Board @('new', '-ProjectPath', $project, '-Kind', 'bugfix', '-Risk', 'high', '-Runtime', 'codex', '-Title', 'Thai ภาษาไทย and spaces', '-Goal', 'Verify shared handoff and QA', '-Acceptance', 'Reproduction passes', '-Owner', 'codex:lead', '-OwnedFile', 'src/example.txt') | Out-Null
+    Set-BugfixReadiness 'Reproduction passes'
     $task = Read-Task 'T-000001'
     Assert-True ($task.schemaVersion -eq 2 -and $task.owner -eq 'codex:lead') 'New task has v2 schema and the requested owner.'
     $lockPath = Join-Path $project '.agent-coordination/.lock'
@@ -59,7 +65,7 @@ try {
     Invoke-Board @('complete', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-QaSummary', 'premature', '-Evidence', 'none') -Fails | Out-Null
 
     Set-Checks 'passing' @('-NoProfile', '-Command', 'exit 0')
-    Invoke-Board @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Reproduce and fix', '-Evidence', 'fixture', '-CheckFile', 'checks.json') | Out-Null
+    Invoke-Board @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Reproduce and fix', '-Evidence', 'fixture', '-CheckFile', 'checks.json', '-ReadinessFile', '.agent-coordination/readiness.json') | Out-Null
     Invoke-Board @('review', '-ProjectPath', $project, '-Id', 'T-000001', '-Reviewer', 'codex:lead', '-Verdict', 'pass', '-Summary', 'self review', '-Evidence', 'none') -Fails | Out-Null
     Invoke-Board @('review', '-ProjectPath', $project, '-Id', 'T-000001', '-Reviewer', 'claude:reviewer', '-Verdict', 'fail', '-Summary', 'unresolved issue', '-Evidence', 'review note') | Out-Null
     Invoke-Board @('qa', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead') -Fails | Out-Null

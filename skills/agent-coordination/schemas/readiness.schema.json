@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Evidence-first implementation readiness v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["schemaVersion", "kind", "acceptanceMapping", "expected", "actual", "reproductionEvidence", "causeStatus", "confirmedCause", "causeEvidence", "minimalChange", "impact", "regressionChecks"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "bugfix" },
+        "acceptanceMapping": { "$ref": "#/$defs/acceptanceMapping" },
+        "expected": { "$ref": "#/$defs/text" },
+        "actual": { "$ref": "#/$defs/text" },
+        "reproductionEvidence": { "$ref": "#/$defs/textList" },
+        "causeStatus": { "const": "confirmed" },
+        "confirmedCause": { "$ref": "#/$defs/text" },
+        "causeEvidence": { "$ref": "#/$defs/textList" },
+        "minimalChange": { "$ref": "#/$defs/text" },
+        "impact": { "$ref": "#/$defs/text" },
+        "regressionChecks": {
+          "type": "array", "minItems": 1, "maxItems": 32,
+          "items": { "type": "object", "required": ["scenario", "verification"], "properties": { "scenario": { "$ref": "#/$defs/text" }, "verification": { "$ref": "#/$defs/text" } }, "additionalProperties": false }
+        },
+        "newEvidence": { "$ref": "#/$defs/textList" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schemaVersion", "kind", "acceptanceMapping", "requirements", "design"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "feature" },
+        "acceptanceMapping": { "$ref": "#/$defs/acceptanceMapping" },
+        "requirements": { "$ref": "#/$defs/textList" },
+        "design": {
+          "type": "object",
+          "required": ["ownership", "data", "interfaces", "states", "failureHandling", "compatibility", "nonGoals"],
+          "properties": {
+            "ownership": { "$ref": "#/$defs/text" },
+            "data": { "$ref": "#/$defs/text" },
+            "interfaces": { "$ref": "#/$defs/text" },
+            "states": { "$ref": "#/$defs/text" },
+            "failureHandling": { "$ref": "#/$defs/text" },
+            "compatibility": { "$ref": "#/$defs/text" },
+            "nonGoals": { "$ref": "#/$defs/text" }
+          },
+          "additionalProperties": false
+        },
+        "newEvidence": { "$ref": "#/$defs/textList" }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "text": { "type": "string", "minLength": 1, "maxLength": 4096, "pattern": "\\S" },
+    "textList": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/text" } },
+    "acceptanceMapping": {
+      "type": "array", "minItems": 1, "maxItems": 32,
+      "items": { "type": "object", "required": ["acceptance", "verification"], "properties": { "acceptance": { "$ref": "#/$defs/text" }, "verification": { "$ref": "#/$defs/text" } }, "additionalProperties": false }
+    }
+  }
+}

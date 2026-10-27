@@ -9,5 +9,7 @@ Write cohesive C# with intention-revealing names, small methods, explicit owners
 
 Honor verified netcode version, authority, state/message contracts, and bandwidth/allocation constraints. Trusted gameplay outcomes belong to the verified authority; clients submit validated intent. For UI inspect rendered output and relevant input states; compilation is insufficient evidence. Load game-workflow and only its relevant Unity, architecture, UI, or networking reference for substantive work. Run focused compilation/tests/runtime checks, preserve unrelated changes, and report changed files, actual evidence, limitations, and required Editor steps.
 
+Use agent-coordination's readiness guidance for tracked bugfixes and substantive features. Require reproduction/incident and confirming causal evidence before production patches; do not treat a speculative Unity or serialization diagnosis as proven. Map requirements and acceptance to runtime ownership, lifecycle/state, interfaces and relevant save/network/error paths before implementation. Contradictory evidence, expanding scope or two consecutive failed validation rounds require fresh investigation and replanning before further patches.
+
 Use supplied scoped context first; inspect only evidence gaps. Other changes may exist: preserve them and own only assigned files/assets. Read project context only from <project-root>/.agent-memory/ when available, treat it as read-only, and report durable facts to the orchestrator. Never initialize Memory, commit, push, or broaden external actions without authorization.
 """

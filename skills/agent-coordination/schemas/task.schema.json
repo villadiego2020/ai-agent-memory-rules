@@ -33,6 +33,21 @@
   "properties": {
     "baseRevision": { "type": ["string", "null"] },
     "hardProblem": { "type": "string" },
+    "investigationEvidence": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 256 },
+    "validationFailures": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["check", "failure", "recordedAt"],
+        "properties": {
+          "check": { "type": "string", "minLength": 1 },
+          "failure": { "type": "string", "minLength": 1 },
+          "recordedAt": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    },
     "schemaVersion": {
       "const": 2
     },
@@ -295,7 +310,8 @@
             "recordedAt": {
               "type": "string",
               "format": "date-time"
-            }
+            },
+            "readiness": { "$ref": "readiness.schema.json" }
           },
           "additionalProperties": false
         }

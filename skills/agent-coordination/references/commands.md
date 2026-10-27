@@ -5,13 +5,15 @@ Run from the project root. The commands are PowerShell examples; `scripts/coordi
 ```powershell
 pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 init -ProjectPath .
 pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 new -ProjectPath . -Stack unity -Kind bugfix -Risk high -Title 'Fix save load' -Goal 'Old saves load' -Acceptance 'Reproduction passes' -Owner 'codex:lead' -OwnedFile 'Assets/Scripts/SaveLoader.cs'
-pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 plan -ProjectPath . -Id '<task-id>' -Owner 'codex:lead' -Summary 'Root cause and scope' -Evidence 'work/repro.md' -CheckFile 'work/checks.json'
+pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 plan -ProjectPath . -Id '<task-id>' -Owner 'codex:lead' -Summary 'Root cause and scope' -Evidence 'work/repro.md' -ReadinessFile 'work/readiness.json' -CheckFile 'work/checks.json'
 pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 review -ProjectPath . -Id '<task-id>' -Reviewer 'claude:reviewer' -Verdict pass -Summary 'Reviewed diff' -Evidence 'work/review.md'
 pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 qa -ProjectPath . -Id '<task-id>' -Owner 'codex:lead' -Summary 'Unity Editor loaded old save' -Evidence 'work/editor-observation.md'
 pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\coordination.ps1 complete -ProjectPath . -Id '<task-id>' -Owner 'codex:lead' -QaSummary 'Old save loaded; checks passed' -Evidence 'work/editor-observation.md'
 ```
 
 The plan check file is a JSON array in the project. For example, `work/checks.json` can contain:
+
+Bugfixes and medium/high features also use the [readiness contract](readiness.md). A low risk localized feature keeps the short plan command without `-ReadinessFile`. Investigation with an unconfirmed cause stays read only.
 
 ```json
 [

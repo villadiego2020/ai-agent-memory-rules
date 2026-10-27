@@ -70,7 +70,9 @@ if ($index -ge 0) {
 
     Invoke-CommandFile $boardCommand @('init', '-ProjectPath', $project) | Out-Null
     Invoke-CommandFile $boardCommand @('new', '-ProjectPath', $project, '-Kind', 'bugfix', '-Risk', 'high', '-Runtime', 'codex', '-Title', 'CLI dispatch', '-Goal', 'Bounded peer review', '-Acceptance', 'Capture arguments and prompt', '-Owner', 'codex:lead', '-OwnedFile', 'src/example.txt') | Out-Null
-    Invoke-CommandFile $boardCommand @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Manual runtime fixture', '-Evidence', 'fixture', '-NoChecksReason', 'CLI contract check only') | Out-Null
+    $readiness = [ordered]@{ schemaVersion = 1; kind = 'bugfix'; acceptanceMapping = @(@{ acceptance = 'Capture arguments and prompt'; verification = 'Inspect captured CLI input' }); expected = 'CLI captures arguments'; actual = 'Fixture did not'; reproductionEvidence = @('Fixture reproduction'); causeStatus = 'confirmed'; confirmedCause = 'Fixture contract gap'; causeEvidence = @('Fixture inspection'); minimalChange = 'Correct capture'; impact = 'Fixture scope'; regressionChecks = @(@{ scenario = 'CLI capture'; verification = 'Inspect capture file' }) }
+    [IO.File]::WriteAllText((Join-Path $project '.agent-coordination/readiness.json'), ($readiness | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+    Invoke-CommandFile $boardCommand @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Manual runtime fixture', '-Evidence', 'fixture', '-NoChecksReason', 'CLI contract check only', '-ReadinessFile', '.agent-coordination/readiness.json') | Out-Null
 
     $carefulCodex = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex') | ConvertFrom-Json
     Assert-True ($carefulCodex.execute -eq $false -and $carefulCodex.role -eq 'careful' -and $carefulCodex.model -eq 'gpt-6.1-sol' -and $carefulCodex.effort -eq 'high') 'High-risk Codex implementation previews careful tier.'
@@ -84,7 +86,7 @@ if ($index -ge 0) {
     Assert-True ($codePreview.role -eq 'careful' -and $codePreview.model -eq 'gpt-6.1-sol' -and $codePreview.effort -eq 'high') 'High-risk code workload retains careful tier.'
     Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'claude', '-Workload', 'image') -Fails | Out-Null
     Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'review', '-Runtime', 'codex', '-Workload', 'computer') -Fails | Out-Null
-    Invoke-CommandFile $boardCommand @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Complex coordination', '-Evidence', 'fixture', '-NoChecksReason', 'CLI contract check only', '-HardProblem', 'Cross-module race requires deeper reasoning') | Out-Null
+    Invoke-CommandFile $boardCommand @('plan', '-ProjectPath', $project, '-Id', 'T-000001', '-Owner', 'codex:lead', '-Summary', 'Complex coordination', '-Evidence', 'fixture', '-NoChecksReason', 'CLI contract check only', '-ReadinessFile', '.agent-coordination/readiness.json', '-HardProblem', 'Cross-module race requires deeper reasoning') | Out-Null
     $hardCodex = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex') | ConvertFrom-Json
     Assert-True ($hardCodex.role -eq 'hard' -and $hardCodex.model -eq 'gpt-6-astra' -and $hardCodex.effort -eq 'high') 'Named difficult problem previews Codex hard tier.'
     $hardComputer = Invoke-CommandFile $orchestrator @('-ProjectPath', $project, '-Id', 'T-000001', '-Phase', 'implement', '-Runtime', 'codex', '-Workload', 'computer') | ConvertFrom-Json

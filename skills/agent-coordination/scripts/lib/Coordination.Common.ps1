@@ -157,6 +157,19 @@ function Assert-CoordinationTask {
             if ($checkNames.ContainsKey($check.name)) { throw 'Plan has duplicate QA check names.' }
             $checkNames[$check.name]=$true
         }
+        if ($Task.plan.PSObject.Properties['readiness']) { Assert-CoordinationReadiness $Task $Task.plan.readiness }
+    }
+    if ($Task.PSObject.Properties['validationFailures']) {
+        if ($Task.validationFailures -isnot [array] -or $Task.validationFailures.Count -gt 2) { throw 'validationFailures must be an array of at most two rounds.' }
+        foreach ($round in $Task.validationFailures) {
+            Assert-CoordinationFields $round @('check','failure','recordedAt') @() 'Validation failure'
+            Assert-CoordinationText $round.check 'Validation check'
+            Assert-CoordinationText $round.failure 'Validation failure'
+        }
+    }
+    if ($Task.PSObject.Properties['investigationEvidence']) {
+        if ($Task.investigationEvidence -isnot [array] -or $Task.investigationEvidence.Count -gt 256) { throw 'investigationEvidence must be an array of at most 256 strings.' }
+        foreach ($fact in $Task.investigationEvidence) { Assert-CoordinationText $fact 'Investigation evidence' }
     }
     if ($Task.review) {
         foreach ($name in @('actor','runtime','verdict','summary','evidence','snapshot','verification','recordedAt')) { if (-not $Task.review.PSObject.Properties[$name]) { throw "Task review is missing '$name'." } }
@@ -256,6 +269,91 @@ function Read-CoordinationChecks {
         $null = Resolve-CoordinationDirectory $Context $check.workingDirectory
     }
     return $checks
+}
+
+function Test-CoordinationReadinessRequired {
+    param($Task)
+    return $Task.kind -eq 'bugfix' -or ($Task.kind -eq 'feature' -and $Task.risk -ne 'low')
+}
+
+function Assert-CoordinationFields {
+    param($Object, [string[]]$Required, [string[]]$Optional=@(), [string]$Label)
+    if ($null -eq $Object -or $Object -isnot [pscustomobject]) { throw "$Label must be a JSON object." }
+    $names=@($Object.PSObject.Properties | ForEach-Object { $_.Name })
+    foreach ($name in $Required) { if ($name -cnotin $names) { throw "$Label is missing '$name'." } }
+    foreach ($name in $names) { if ($name -cnotin @($Required + $Optional)) { throw "$Label has unknown field '$name'." } }
+}
+
+function Assert-CoordinationText {
+    param($Value, [string]$Label)
+    if ($Value -isnot [string] -or [string]::IsNullOrWhiteSpace($Value) -or $Value.Length -gt 4096) { throw "$Label must be a non-empty string up to 4096 characters." }
+}
+
+function Assert-CoordinationTextList {
+    param($Value, [string]$Label)
+    if ($Value -isnot [array] -or $Value.Count -lt 1 -or $Value.Count -gt 32) { throw "$Label must contain 1-32 strings." }
+    foreach ($item in $Value) { Assert-CoordinationText $item $Label }
+}
+
+function Assert-CoordinationReadiness {
+    param($Task, $Readiness)
+    Assert-CoordinationFields $Readiness @('schemaVersion','kind','acceptanceMapping') @('expected','actual','reproductionEvidence','causeStatus','confirmedCause','causeEvidence','minimalChange','impact','regressionChecks','requirements','design','newEvidence') 'Readiness'
+    if (($Readiness.schemaVersion -isnot [int] -and $Readiness.schemaVersion -isnot [long]) -or $Readiness.schemaVersion -ne 1) { throw 'Readiness schemaVersion must be numeric 1.' }
+    if ($Readiness.kind -isnot [string] -or $Readiness.kind -cne $Task.kind) { throw 'Readiness kind must match the task kind exactly.' }
+    if ($Readiness.acceptanceMapping -isnot [array] -or $Readiness.acceptanceMapping.Count -ne $Task.acceptance.Count) { throw 'Readiness must map every task acceptance item.' }
+    $covered=@{}
+    foreach ($mapping in $Readiness.acceptanceMapping) {
+        Assert-CoordinationFields $mapping @('acceptance','verification') @() 'Acceptance mapping'
+        Assert-CoordinationText $mapping.acceptance 'Acceptance mapping item'
+        Assert-CoordinationText $mapping.verification 'Acceptance verification'
+        if ($mapping.acceptance -cnotin @($Task.acceptance) -or $covered.ContainsKey($mapping.acceptance)) { throw 'Acceptance mapping must reference each exact task acceptance item once.' }
+        $covered[$mapping.acceptance]=$true
+    }
+    if ($Readiness.PSObject.Properties['newEvidence']) { Assert-CoordinationTextList $Readiness.newEvidence 'newEvidence' }
+    if ($Task.kind -eq 'bugfix') {
+        if (-not $Readiness.PSObject.Properties['causeStatus'] -or $Readiness.causeStatus -isnot [string] -or $Readiness.causeStatus -cne 'confirmed') { throw 'Bugfix implementation requires causeStatus: confirmed; investigate unresolved causes in analysis.' }
+        foreach ($name in @('expected','actual','confirmedCause','minimalChange','impact')) { if (-not $Readiness.PSObject.Properties[$name]) { throw "Bugfix readiness is missing '$name'." }; Assert-CoordinationText $Readiness.$name $name }
+        foreach ($name in @('reproductionEvidence','causeEvidence')) { if (-not $Readiness.PSObject.Properties[$name]) { throw "Bugfix readiness is missing '$name'." }; Assert-CoordinationTextList $Readiness.$name $name }
+        if (-not $Readiness.PSObject.Properties['regressionChecks'] -or $Readiness.regressionChecks -isnot [array] -or $Readiness.regressionChecks.Count -lt 1 -or $Readiness.regressionChecks.Count -gt 32) { throw 'Bugfix readiness requires 1-32 regression checks.' }
+        foreach ($check in $Readiness.regressionChecks) {
+            Assert-CoordinationFields $check @('scenario','verification') @() 'Regression check'
+            Assert-CoordinationText $check.scenario 'Regression scenario'
+            Assert-CoordinationText $check.verification 'Regression verification'
+        }
+        foreach ($name in @('requirements','design')) { if ($Readiness.PSObject.Properties[$name]) { throw "Bugfix readiness cannot include '$name'." } }
+    } elseif ($Task.kind -eq 'feature') {
+        foreach ($name in @('expected','actual','reproductionEvidence','causeStatus','confirmedCause','causeEvidence','minimalChange','impact','regressionChecks')) { if ($Readiness.PSObject.Properties[$name]) { throw "Feature readiness cannot include '$name'." } }
+        if (-not $Readiness.PSObject.Properties['requirements']) { throw 'Feature readiness requires requirements.' }
+        Assert-CoordinationTextList $Readiness.requirements 'requirements'
+        if (-not $Readiness.PSObject.Properties['design']) { throw 'Feature readiness requires design.' }
+        Assert-CoordinationFields $Readiness.design @('ownership','data','interfaces','states','failureHandling','compatibility','nonGoals') @() 'Feature design'
+        foreach ($name in @('ownership','data','interfaces','states','failureHandling','compatibility','nonGoals')) { Assert-CoordinationText $Readiness.design.$name "design.$name" }
+    } else { throw 'Readiness applies only to bugfix and substantive feature tasks.' }
+}
+
+function Read-CoordinationReadiness {
+    param($Context, [string]$ReadinessFile, $Task)
+    if ([string]::IsNullOrWhiteSpace($ReadinessFile)) { throw 'This task requires -ReadinessFile before implementation.' }
+    $safe=if ($ReadinessFile.StartsWith('.agent-coordination/',[StringComparison]::Ordinal)) {
+        '.agent-coordination/' + (ConvertTo-CoordinationScope $ReadinessFile.Substring('.agent-coordination/'.Length))
+    } else { ConvertTo-CoordinationScope $ReadinessFile }
+    $path=Join-Path $Context.root $safe
+    Assert-CoordinationPath $path
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Readiness file does not exist: $path" }
+    if ((Get-Item -LiteralPath $path).Length -gt 65536) { throw 'Readiness file exceeds 64 KiB.' }
+    $readiness=[IO.File]::ReadAllText($path) | ConvertFrom-Json -Depth 20
+    Assert-CoordinationReadiness $Task $readiness
+    return $readiness
+}
+
+function Assert-CoordinationImplementationReady {
+    param($Task)
+    if (-not $Task.plan) { throw 'Implementation requires a recorded plan.' }
+    if (Test-CoordinationReadinessRequired $Task) {
+        if (-not $Task.plan.PSObject.Properties['readiness'] -or -not $Task.plan.readiness) { throw 'Implementation requires a validated readiness contract. Replan with -ReadinessFile.' }
+        Assert-CoordinationReadiness $Task $Task.plan.readiness
+    }
+    if ($Task.PSObject.Properties['validationFailures'] -and @($Task.validationFailures).Count -ge 2) { throw 'Two validation rounds failed. Investigate and replan with fresh evidence before implementation.' }
 }
 
 function Assert-CoordinationCheck {

@@ -12,7 +12,7 @@ param(
     [string]$Reason='', [string]$QaSummary='', [string]$Reviewer='',
     [string]$HardProblem='',
     [ValidateSet('pass','fail')][string]$Verdict='pass',
-    [string]$CheckFile='', [string]$NoChecksReason='', [switch]$RequireRuntimeEvidence,
+    [string]$CheckFile='', [string]$ReadinessFile='', [string]$NoChecksReason='', [switch]$RequireRuntimeEvidence,
     [ValidateRange(1,7200)][int]$TimeoutSeconds=1200,
     [string]$Branch='', [switch]$Json
 )
@@ -101,6 +101,7 @@ if ($Action -eq 'qa') {
         $task=Read-CoordinationTask $context $Id
         Assert-CoordinationOwner $task $Owner
         if (-not $task.plan) { throw 'Record a plan and its acceptance checks before QA.' }
+        Assert-CoordinationImplementationReady $task
         $task
     }
     $target=Get-CoordinationTaskContext $context $observed
@@ -110,13 +111,14 @@ if ($Action -eq 'qa') {
         Assert-CoordinationOwner $task $Owner
         if ($task.updatedAt -ne $observed.updatedAt) { throw 'Task changed while preparing QA. Read its current plan and retry explicitly.' }
         Assert-CoordinationCurrentReview $task $snapshot
-        if (($task.plan.checks.Count -eq 0 -or $task.plan.requireRuntimeEvidence) -and ([string]::IsNullOrWhiteSpace($Summary) -or $Evidence.Count -eq 0)) { throw 'Manual/runtime acceptance requires -Summary and -Evidence; executed command results alone do not prove it.' }
+        Assert-CoordinationImplementationReady $task
+        if (($Verdict -eq 'fail' -or $task.plan.checks.Count -eq 0 -or $task.plan.requireRuntimeEvidence) -and ([string]::IsNullOrWhiteSpace($Summary) -or $Evidence.Count -eq 0)) { throw 'Manual/runtime acceptance requires -Summary and -Evidence; executed command results alone do not prove it.' }
         $task.execution=New-CoordinationLease $Owner 'qa' $runId
         Save-CoordinationTask $context $task
         [pscustomobject]@{ task=$task; target=$target; snapshot=$snapshot }
     }
     $artifactDirectory=Join-Path $context.board "artifacts/$Id/$runId"
-    $results=@(); $failure=''
+    $results=@(); $failure=''; $sourceChanged=$false
     $qaWatch=[Diagnostics.Stopwatch]::StartNew()
     try {
         Assert-CoordinationPath $artifactDirectory
@@ -131,7 +133,8 @@ if ($Action -eq 'qa') {
             $results+=[pscustomobject]@{ name=$check.name; executable=$check.executable; arguments=@($check.arguments); exitCode=$result.exitCode; timedOut=$result.timedOut; durationMs=$result.durationMs; workingDirectory=$working; stdout="$prefix.stdout.log"; stderr="$prefix.stderr.log" }
             if ($result.timedOut -or $result.exitCode -ne 0) { $failure="QA check '$($check.name)' failed (exit $($result.exitCode), timeout $($result.timedOut))."; break }
         }
-        if ((Get-CoordinationSnapshot $prepared.target) -ne $prepared.snapshot) { $failure='Source changed during QA. Re-review the new snapshot and rerun acceptance checks.' }
+        if ((Get-CoordinationSnapshot $prepared.target) -ne $prepared.snapshot) { $sourceChanged=$true; $failure='Source changed during QA. Re-review the new snapshot and rerun acceptance checks.' }
+        elseif (-not $failure -and $Verdict -eq 'fail') { $failure='Manual/runtime acceptance failed; inspect QA summary and evidence.' }
     } catch { $failure=$_.Exception.Message }
     Invoke-CoordinationLock $context {
         $task=Read-CoordinationTask $context $Id
@@ -139,6 +142,14 @@ if ($Action -eq 'qa') {
         $receipt=[pscustomobject]@{ snapshot=$prepared.snapshot; passed=($failure -eq ''); checks=@($results); manualSummary=$Summary; manualEvidence=@($Evidence); failure=$failure; recordedAt=[DateTime]::UtcNow.ToString('o') }
         if (Test-Path -LiteralPath $artifactDirectory) { Write-CoordinationJson (Join-Path $artifactDirectory 'qa.json') $receipt }
         $task.qa=$receipt; $task.execution=$null; $task.stage='qa'; $task.status='claimed'
+        if (-not $failure -and $task.PSObject.Properties['validationFailures']) { Set-CoordinationProperty $task 'validationFailures' @() }
+        if ((Test-CoordinationReadinessRequired $task) -and -not $sourceChanged -and (@($results | Where-Object { $_.timedOut -or $_.exitCode -ne 0 }).Count -gt 0 -or ($Verdict -eq 'fail' -and $failure -eq 'Manual/runtime acceptance failed; inspect QA summary and evidence.'))) {
+            $prior=@()
+            if ($task.PSObject.Properties['validationFailures']) { $prior=@($task.validationFailures) }
+            $failedCheck=if (@($results).Count) {$results[-1].name} else {'manual'}
+            Set-CoordinationProperty $task 'validationFailures' @(@($prior) + @([pscustomobject]@{ check=$failedCheck; failure=$failure; recordedAt=$receipt.recordedAt }))
+            if ($task.validationFailures.Count -ge 2) { $task.status='blocked' }
+        }
         $task.artifacts=@($task.artifacts)+@("$artifactDirectory/qa.json")
         Save-CoordinationTask $context $task
     }
@@ -156,6 +167,7 @@ if ($Action -eq 'review') {
         $task=Read-CoordinationTask $context $Id
         if ($task.updatedAt -ne $observed.updatedAt) { throw 'Task changed during review preparation. Read its current state and retry explicitly.' }
         if (-not $task.plan -or $task.status -eq 'complete' -or $task.execution) { throw 'Review requires a planned, active task without a running execution.' }
+        Assert-CoordinationImplementationReady $task
         if ($Reviewer -ieq $task.owner -or $Reviewer -in @($task.implementationParticipants)) { throw 'Reviewer must be a different actor who did not implement this task.' }
         $task.review=[pscustomobject]@{ actor=$Reviewer; runtime=(Get-CoordinationActorRuntime $Reviewer); verdict=$Verdict; summary=$Summary; evidence=@($Evidence); snapshot=$snapshot; verification='manual-attestation'; recordedAt=[DateTime]::UtcNow.ToString('o') }
         $task.qa=$null; $task.stage='review'; $task.status='review'
@@ -218,8 +230,40 @@ Invoke-CoordinationLock $context {
             $target=Get-CoordinationTaskContext $context $task
             $checks=@(Read-CoordinationChecks $target $CheckFile)
             if (-not $checks.Count -and [string]::IsNullOrWhiteSpace($NoChecksReason)) { throw 'Provide -CheckFile with acceptance commands or an explicit -NoChecksReason.' }
+            $readiness=$null
+            if (Test-CoordinationReadinessRequired $task) { $readiness=Read-CoordinationReadiness $target $ReadinessFile $task }
+            elseif ($ReadinessFile) { throw '-ReadinessFile applies to bugfix or medium/high feature tasks.' }
+            $priorFailureCount=if ($task.PSObject.Properties['validationFailures']) {@($task.validationFailures).Count} else {0}
+            $hasNewEvidence=$readiness -and $readiness.PSObject.Properties['newEvidence']
+            if ($priorFailureCount -ge 2 -and -not $hasNewEvidence) { throw 'After two failed validation rounds, replan with fresh newEvidence.' }
+            $resetValidationFailures=$false
+            if ($priorFailureCount -gt 0 -and $hasNewEvidence) {
+                $known=@()
+                if ($task.PSObject.Properties['investigationEvidence']) { $known+=@($task.investigationEvidence) }
+                if ($task.plan) { $known+=@($task.plan.evidence) }
+                if ($task.plan -and $task.plan.PSObject.Properties['readiness']) {
+                    foreach ($name in @('newEvidence','reproductionEvidence','causeEvidence')) {
+                        if ($task.plan.readiness.PSObject.Properties[$name]) { $known+=@($task.plan.readiness.$name) }
+                    }
+                }
+                $knownNormalized=@($known | Where-Object { $_ -is [string] } | ForEach-Object { $_.Trim().ToLowerInvariant() } | Sort-Object -Unique)
+                if (@($readiness.newEvidence | Where-Object { $_.Trim().ToLowerInvariant() -notin $knownNormalized }).Count -eq 0) { throw 'Replan evidence must contain a new diagnostic fact absent from the prior plan.' }
+                $resetValidationFailures=$true
+            }
+            if ($readiness) {
+                $history=if ($task.PSObject.Properties['investigationEvidence']) {@($task.investigationEvidence)} else {@()}
+                $history=@($history)+@($Evidence)
+                foreach ($name in @('newEvidence','reproductionEvidence','causeEvidence')) {
+                    if ($readiness.PSObject.Properties[$name]) { $history+=@($readiness.$name) }
+                }
+                $history=@($history | Where-Object { $_ -is [string] -and -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.Trim().ToLowerInvariant() } | Sort-Object -Unique)
+                if ($history.Count -gt 256) { throw 'Investigation evidence history exceeds 256 facts; split the tracked task.' }
+                Set-CoordinationProperty $task 'investigationEvidence' $history
+            }
             $runtimeProof=$RequireRuntimeEvidence.IsPresent -or ($task.stack -eq 'unity' -and $task.kind -ne 'analysis')
             $task.plan=[pscustomobject]@{ summary=$Summary; evidence=@($Evidence); checks=@($checks); noChecksReason=$NoChecksReason; requireRuntimeEvidence=$runtimeProof; recordedAt=[DateTime]::UtcNow.ToString('o') }
+            if ($readiness) { Set-CoordinationProperty $task.plan 'readiness' $readiness }
+            if ($resetValidationFailures) { Set-CoordinationProperty $task 'validationFailures' @() }
             if ($hardProblemProvided) { Set-CoordinationProperty $task 'hardProblem' $HardProblem.Trim() }
             if ($task.kind -ne 'analysis') { $task.implementationParticipants=@(@($task.implementationParticipants)+@($Owner) | Sort-Object -Unique) }
             Clear-CoordinationGates $task
@@ -244,6 +288,7 @@ Invoke-CoordinationLock $context {
         'complete' {
             if ([string]::IsNullOrWhiteSpace($QaSummary) -or -not $Evidence.Count) { throw 'complete requires -QaSummary and -Evidence.' }
             if (-not $task.plan -or -not $task.qa -or -not $task.qa.passed) { throw 'Successful executable or explicit manual acceptance QA is required before completion.' }
+            Assert-CoordinationImplementationReady $task
             if ($task.updatedAt -ne $completionTask.updatedAt) { throw 'Task changed while preparing completion. Inspect its new state before completing.' }
             $snapshot=$completionSnapshot
             Assert-CoordinationCurrentReview $task $snapshot

@@ -92,12 +92,14 @@ Invoke-CoordinationLock $context {
     if ($task.updatedAt -ne $observedVersion) { throw 'Task changed while preparing dispatch. Read its new contract before launching a model.' }
     if ($Phase -eq 'review') {
         if (-not $task.plan -or $task.status -eq 'complete' -or $task.execution) { throw 'Review dispatch requires a planned active task without a running execution.' }
+        Assert-CoordinationImplementationReady $task
         if ($Actor -ieq $task.owner -or $Actor -in @($task.implementationParticipants)) { throw 'Independent reviewer cannot be an implementation participant.' }
         Clear-CoordinationGates $task
     } else {
         Assert-CoordinationOwner $task $Actor
         if ($Phase -eq 'implement') {
             if (-not $task.plan -or $task.kind -eq 'analysis') { throw 'Implementation dispatch requires a non-analysis task with an accepted plan.' }
+            Assert-CoordinationImplementationReady $task
             $task.implementationParticipants=@(@($task.implementationParticipants)+@($Actor) | Sort-Object -Unique)
             Clear-CoordinationGates $task
         }
