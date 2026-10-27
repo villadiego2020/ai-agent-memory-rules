@@ -12,6 +12,8 @@
 
 # FEATURE
 
+- PROJ-008: Connected Codex workload dispatch, aligned local defaults, verified native child tools, and migrated installed memory-audit to project-local boundaries; independent regression checks passed. [detail](archive/PROJ-008.md)
+- PROJ-007: Added Codex workload routing for Astra image generation, Sol code implementation, and Terra Computer Use; verified and installed Copy mode globally. [detail](archive/PROJ-007.md)
 - PROJ-005: Added opt-in file-based Claude/Codex task coordination with handoffs, ownership locks, independent-review and QA gates. [detail](archive/PROJ-005.md)
 - PROJ-004: Aligned Claude agents with role-based model/effort tiers (sonnet/haiku/opus); verified source and installed profiles. [detail](archive/PROJ-004.md)
 - PROJ-003: Aligned Codex agents and local defaults with GPT-6 model/effort tiers; verified source and installed profiles. [detail](archive/PROJ-003.md)
