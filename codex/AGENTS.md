@@ -87,6 +87,7 @@ Close only after implementation and focused verification are complete with no fo
 
 When commits are authorized, use these conventions; this section is not authorization to commit or push.
 
+- Every commit created by Codex must end with a Git trailer after a blank line: `Co-authored-by: Codex (<actual model name>) <noreply@openai.com>`. Resolve the actual model from authoritative metadata for the session or agent that performed the work; never infer it from a default configuration, role, requested model, or previous session. If multiple Codex models contributed to the committed work, include one trailer per verified model. Preserve the user's Git author and committer identity. If the actual model cannot be verified, ask for the missing model information before committing; never guess or silently omit the model. Before completing the commit operation, inspect the resulting commit message to verify the required trailers. Pushing existing commits does not add attribution; do not rewrite existing commits solely to add it without explicit authorization.
 - Work files and Memory must be separate commits by default.
 - Confirmed defect, regression, security issue, or broken behavior work commit: `[Bug] <message>`.
 - All other project work—new capability, improvement, refactor, tooling, documentation, and tests unless tied to a confirmed defect—uses `[Feature] <message>`.
