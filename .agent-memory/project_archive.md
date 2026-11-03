@@ -1,6 +1,6 @@
 # BUGS
 
-(None)
+- PROJ-011: Fixed rejected CI shell expression while preserving both Windows PowerShell jobs; independent wrapper probes and hosted CI passed. [detail](archive/PROJ-011.md)
 
 # IMPROVE / OPTIMIZE
 
