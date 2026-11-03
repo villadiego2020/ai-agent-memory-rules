@@ -12,6 +12,8 @@
 
 # FEATURE
 
+- PROJ-010: Added contract/environment evidence freshness, cross-host hash compatibility and independent drift checks; recorded original baseline and composed final both-host verification. [detail](archive/PROJ-010.md)
+
 - PROJ-009: Added evidence-first bugfix/system readiness contracts, acceptance mapping and two-failure QA recovery gates; independently verified and installed for Codex. [detail](archive/PROJ-009.md)
 - PROJ-008: Connected Codex workload dispatch, aligned local defaults, verified native child tools, and migrated installed memory-audit to project-local boundaries; independent regression checks passed. [detail](archive/PROJ-008.md)
 - PROJ-007: Added Codex workload routing for Astra image generation, Sol code implementation, and Terra Computer Use; verified and installed Copy mode globally. [detail](archive/PROJ-007.md)
