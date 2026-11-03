@@ -14,5 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run repository validation and tests
-        shell: ${{ matrix.shell }}
-        run: ./scripts/test.ps1
+        shell: pwsh
+        env:
+          TEST_HOST: ${{ matrix.shell }}
+        run: |
+          & $env:TEST_HOST -NoProfile -ExecutionPolicy Bypass -File ./scripts/test.ps1
+          exit $LASTEXITCODE
