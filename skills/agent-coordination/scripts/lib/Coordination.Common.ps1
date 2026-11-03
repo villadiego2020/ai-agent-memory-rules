@@ -341,7 +341,7 @@ function Read-CoordinationReadiness {
     Assert-CoordinationPath $path
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Readiness file does not exist: $path" }
     if ((Get-Item -LiteralPath $path).Length -gt 65536) { throw 'Readiness file exceeds 64 KiB.' }
-    $readiness=[IO.File]::ReadAllText($path) | ConvertFrom-Json -Depth 20
+    $readiness=[IO.File]::ReadAllText($path) | ConvertFrom-Json
     Assert-CoordinationReadiness $Task $readiness
     return $readiness
 }

@@ -10,6 +10,7 @@ $project=Join-Path ([IO.Path]::GetTempPath()) "coordination-readiness-$([guid]::
 
 function Assert-True([bool]$Condition,[string]$Message) { if (-not $Condition) { throw "Assertion failed: $Message" } }
 function Invoke-Tool([string]$Script,[string[]]$Arguments,[switch]$Fails) {
+    $ErrorActionPreference='Continue'
     $output=@(& $hostExecutable -NoProfile -ExecutionPolicy Bypass -File $Script @Arguments 2>&1)
     if ($Fails -and $LASTEXITCODE -eq 0) { throw "Expected rejection: $($Arguments -join ' ')" }
     if (-not $Fails -and $LASTEXITCODE -ne 0) { throw "Unexpected failure: $($Arguments -join ' ')`n$output" }
@@ -17,6 +18,8 @@ function Invoke-Tool([string]$Script,[string[]]$Arguments,[switch]$Fails) {
 }
 function Task([string]$Id) { Get-Content -LiteralPath (Join-Path $project ".agent-coordination/tasks/$Id.json") -Raw | ConvertFrom-Json }
 function Write-Ready($Value) { [IO.File]::WriteAllText((Join-Path $project '.agent-coordination/readiness.json'),($Value | ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false)) }
+
+function Copy-Ready($Value) { $copy=[ordered]@{}; foreach ($key in $Value.Keys) { $copy[$key]=$Value[$key] }; return $copy }
 
 try {
     New-Item -ItemType Directory -Path $project -Force | Out-Null
@@ -30,25 +33,25 @@ try {
     Invoke-Tool $board @('new','-ProjectPath',$project,'-Kind','bugfix','-Risk','medium','-Title','Bug','-Goal','Repair behavior','-Acceptance','Observed behavior fixed','-Owner','codex:lead','-OwnedFile','source.txt') | Out-Null
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Unconfirmed theory','-Evidence','guess','-NoChecksReason','Manual fixture') -Fails | Out-Null
     $ready=[ordered]@{ schemaVersion=1; kind='bugfix'; expected='Value retained'; actual='Value lost'; reproductionEvidence=@('Reproduced with fixture'); causeStatus='confirmed'; confirmedCause='Wrong branch'; causeEvidence=@('Trace hits wrong branch'); minimalChange='Correct branch'; impact='Fixture only'; regressionChecks=@(@{scenario='Reload';verification='Inspect retained value'}); acceptanceMapping=@(@{acceptance='Observed behavior fixed';verification='Reproduce and inspect result'}) }
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad.causeStatus='hypothesis'
+    $bad=Copy-Ready $ready; $bad.causeStatus='hypothesis'
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Unconfirmed','-Evidence','theory','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad.Remove('causeEvidence')
+    $bad=Copy-Ready $ready; $bad.Remove('causeEvidence')
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Cause','-Evidence','trace','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad.acceptanceMapping=@(@{acceptance='Different acceptance';verification='Claimed check'})
+    $bad=Copy-Ready $ready; $bad.acceptanceMapping=@(@{acceptance='Different acceptance';verification='Claimed check'})
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Cause','-Evidence','trace','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad['unknown']='extra'
+    $bad=Copy-Ready $ready; $bad['unknown']='extra'
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Cause','-Evidence','trace','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad.schemaVersion='1'
+    $bad=Copy-Ready $ready; $bad.schemaVersion='1'
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Cause','-Evidence','trace','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad.Remove('causeStatus'); $bad['CauseStatus']='confirmed'
+    $bad=Copy-Ready $ready; $bad.Remove('causeStatus'); $bad['CauseStatus']='confirmed'
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Cause','-Evidence','trace','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
-    $bad=$ready | ConvertTo-Json -Depth 12 | ConvertFrom-Json -AsHashtable; $bad.kind=@('bugfix')
+    $bad=Copy-Ready $ready; $bad.kind=@('bugfix')
     Write-Ready $bad
     Invoke-Tool $board @('plan','-ProjectPath',$project,'-Id','T-000001','-Owner','codex:lead','-Summary','Cause','-Evidence','trace','-NoChecksReason','Manual fixture','-ReadinessFile','.agent-coordination/readiness.json') -Fails | Out-Null
     Write-Ready $ready
