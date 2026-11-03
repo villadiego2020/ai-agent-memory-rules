@@ -11,6 +11,7 @@ param(
     [string]$Summary='', [string[]]$ChangedFile=@(), [string[]]$Decision=@(), [string[]]$Evidence=@(), [string[]]$Limitation=@(),
     [string]$Reason='', [string]$QaSummary='', [string]$Reviewer='',
     [string]$HardProblem='',
+    [ValidateLength(1,128)][string]$RequirementRevision='1', [string]$EnvironmentFile='',
     [ValidateSet('pass','fail')][string]$Verdict='pass',
     [string]$CheckFile='', [string]$ReadinessFile='', [string]$NoChecksReason='', [switch]$RequireRuntimeEvidence,
     [ValidateRange(1,7200)][int]$TimeoutSeconds=1200,
@@ -105,6 +106,7 @@ if ($Action -eq 'qa') {
         $task
     }
     $target=Get-CoordinationTaskContext $context $observed
+    $freshness=Get-CoordinationFreshness $observed
     $snapshot=Get-CoordinationSnapshot $target
     $prepared=Invoke-CoordinationLock $context {
         $task=Read-CoordinationTask $context $Id
@@ -115,7 +117,7 @@ if ($Action -eq 'qa') {
         if (($Verdict -eq 'fail' -or $task.plan.checks.Count -eq 0 -or $task.plan.requireRuntimeEvidence) -and ([string]::IsNullOrWhiteSpace($Summary) -or $Evidence.Count -eq 0)) { throw 'Manual/runtime acceptance requires -Summary and -Evidence; executed command results alone do not prove it.' }
         $task.execution=New-CoordinationLease $Owner 'qa' $runId
         Save-CoordinationTask $context $task
-        [pscustomobject]@{ task=$task; target=$target; snapshot=$snapshot }
+        [pscustomobject]@{ task=$task; target=$target; snapshot=$snapshot; freshness=$freshness }
     }
     $artifactDirectory=Join-Path $context.board "artifacts/$Id/$runId"
     $results=@(); $failure=''; $sourceChanged=$false
@@ -136,10 +138,13 @@ if ($Action -eq 'qa') {
         if ((Get-CoordinationSnapshot $prepared.target) -ne $prepared.snapshot) { $sourceChanged=$true; $failure='Source changed during QA. Re-review the new snapshot and rerun acceptance checks.' }
         elseif (-not $failure -and $Verdict -eq 'fail') { $failure='Manual/runtime acceptance failed; inspect QA summary and evidence.' }
     } catch { $failure=$_.Exception.Message }
-    Invoke-CoordinationLock $context {
+    $finalFailure=Invoke-CoordinationLock $context {
         $task=Read-CoordinationTask $context $Id
         if (-not $task.execution -or $task.execution.id -ne $runId) { throw 'QA execution lease changed unexpectedly; results were not applied.' }
-        $receipt=[pscustomobject]@{ snapshot=$prepared.snapshot; passed=($failure -eq ''); checks=@($results); manualSummary=$Summary; manualEvidence=@($Evidence); failure=$failure; recordedAt=[DateTime]::UtcNow.ToString('o') }
+        $receipt=[pscustomobject]@{ snapshot=$prepared.snapshot; freshness=$prepared.freshness; passed=($failure -eq ''); checks=@($results); manualSummary=$Summary; manualEvidence=@($Evidence); failure=$failure; recordedAt=[DateTime]::UtcNow.ToString('o') }
+        $freshnessChanged=$true
+        try { $freshnessChanged=(Get-CoordinationFreshness $task) -cne $prepared.freshness } catch { $freshnessChanged=$true }
+        if ($freshnessChanged) { $failure='Requirement contract or environment changed during QA.'; $receipt.passed=$false; $receipt.failure=$failure; $sourceChanged=$true }
         if (Test-Path -LiteralPath $artifactDirectory) { Write-CoordinationJson (Join-Path $artifactDirectory 'qa.json') $receipt }
         $task.qa=$receipt; $task.execution=$null; $task.stage='qa'; $task.status='claimed'
         if (-not $failure -and $task.PSObject.Properties['validationFailures']) { Set-CoordinationProperty $task 'validationFailures' @() }
@@ -152,8 +157,9 @@ if ($Action -eq 'qa') {
         }
         $task.artifacts=@($task.artifacts)+@("$artifactDirectory/qa.json")
         Save-CoordinationTask $context $task
+        return $failure
     }
-    if ($failure) { throw $failure }
+    if ($finalFailure) { throw $finalFailure }
     Write-Output "QA passed for $Id. Receipt: $artifactDirectory/qa.json"
     return
 }
@@ -162,6 +168,7 @@ if ($Action -eq 'review') {
     Assert-TaskSummary; Assert-CoordinationIdentity $Reviewer
     $observed=Invoke-CoordinationLock $context { Read-CoordinationTask $context $Id }
     $target=Get-CoordinationTaskContext $context $observed
+    $freshness=Get-CoordinationFreshness $observed
     $snapshot=Get-CoordinationSnapshot $target
     Invoke-CoordinationLock $context {
         $task=Read-CoordinationTask $context $Id
@@ -169,7 +176,8 @@ if ($Action -eq 'review') {
         if (-not $task.plan -or $task.status -eq 'complete' -or $task.execution) { throw 'Review requires a planned, active task without a running execution.' }
         Assert-CoordinationImplementationReady $task
         if ($Reviewer -ieq $task.owner -or $Reviewer -in @($task.implementationParticipants)) { throw 'Reviewer must be a different actor who did not implement this task.' }
-        $task.review=[pscustomobject]@{ actor=$Reviewer; runtime=(Get-CoordinationActorRuntime $Reviewer); verdict=$Verdict; summary=$Summary; evidence=@($Evidence); snapshot=$snapshot; verification='manual-attestation'; recordedAt=[DateTime]::UtcNow.ToString('o') }
+        if ((Get-CoordinationFreshness $task) -cne $freshness) { throw 'Contract or environment changed during review preparation.' }
+        $task.review=[pscustomobject]@{ actor=$Reviewer; runtime=(Get-CoordinationActorRuntime $Reviewer); verdict=$Verdict; summary=$Summary; evidence=@($Evidence); snapshot=$snapshot; freshness=$freshness; verification='manual-attestation'; recordedAt=[DateTime]::UtcNow.ToString('o') }
         $task.qa=$null; $task.stage='review'; $task.status='review'
         Save-CoordinationTask $context $task
         Write-Output "Recorded $Verdict review from $Reviewer for $Id."
@@ -262,6 +270,9 @@ Invoke-CoordinationLock $context {
             }
             $runtimeProof=$RequireRuntimeEvidence.IsPresent -or ($task.stack -eq 'unity' -and $task.kind -ne 'analysis')
             $task.plan=[pscustomobject]@{ summary=$Summary; evidence=@($Evidence); checks=@($checks); noChecksReason=$NoChecksReason; requireRuntimeEvidence=$runtimeProof; recordedAt=[DateTime]::UtcNow.ToString('o') }
+            Set-CoordinationProperty $task.plan 'requirementRevision' $RequirementRevision
+            Set-CoordinationProperty $task.plan 'environmentFile' $(if ($EnvironmentFile) { ConvertTo-CoordinationScope $EnvironmentFile } else { '' })
+            $null=Get-CoordinationFreshness $task
             if ($readiness) { Set-CoordinationProperty $task.plan 'readiness' $readiness }
             if ($resetValidationFailures) { Set-CoordinationProperty $task 'validationFailures' @() }
             if ($hardProblemProvided) { Set-CoordinationProperty $task 'hardProblem' $HardProblem.Trim() }
@@ -292,6 +303,7 @@ Invoke-CoordinationLock $context {
             if ($task.updatedAt -ne $completionTask.updatedAt) { throw 'Task changed while preparing completion. Inspect its new state before completing.' }
             $snapshot=$completionSnapshot
             Assert-CoordinationCurrentReview $task $snapshot
+            Assert-CoordinationFreshReceipt $task $task.qa
             if ($task.qa.snapshot -ne $snapshot) { throw 'QA is stale: source changed after verification. Re-review and rerun QA.' }
             Set-CoordinationProperty $task 'completion' ([pscustomobject]@{ summary=$QaSummary; evidence=@($Evidence); actor=$Owner; recordedAt=[DateTime]::UtcNow.ToString('o') })
             $task.status='complete'; $task.stage='complete'; Save-CoordinationTask $context $task

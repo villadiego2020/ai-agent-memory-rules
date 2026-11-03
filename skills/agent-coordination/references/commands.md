@@ -59,3 +59,14 @@ The CLI adapter embeds the small shared workflow and matching playbook in its pr
 Risk and difficulty are separate. High-risk implementation selects the `careful` tier and still requires independent review. Use `new -HardProblem 'Describe the unusually difficult problem'` (or set it with `plan`) to select `hard` for planning/implementation/analysis. An explicit empty `plan -HardProblem ''` restores ordinary phase routing. Review retains the independent peer-review tier.
 
 If Claude reports an expired OAuth session, run `claude auth login` yourself, then resume the same task/phase. Authentication is not stored or repaired through the board. A failed runtime call leaves its receipt and a recoverable task state; do not switch models or bypass permissions to conceal the failure.
+
+## Requirement and environment freshness
+
+New plans enable contract freshness by default. Use `plan -RequirementRevision '2'`
+when requirements evolve; replanning clears old review and QA. Optionally include
+`-EnvironmentFile 'environment.json'`, a project-relative JSON file of non-secret
+runtime/tool/session identifiers (maximum 64 KiB). Review, QA and completion hash
+its contents even if Git ignores it. Update the descriptor when relevant external
+state changes; no automatic environment probes or credentials are collected.
+Contract or descriptor drift requires fresh review/QA. Legacy v2 plans without a
+requirement revision retain source-only checks until replanned.

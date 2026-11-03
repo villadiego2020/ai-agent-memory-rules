@@ -86,6 +86,7 @@ if (-not $Execute) {
 Assert-CoordinationIdentity $Actor
 if ($Actor -match '^(codex|claude):' -and $Matches[1] -ne $Runtime) { throw 'Actor runtime prefix must match the selected runtime.' }
 $observedVersion=$task.updatedAt
+$freshness=Get-CoordinationFreshness $task
 $before=Get-CoordinationSnapshot $target -WithFiles
 Invoke-CoordinationLock $context {
     $task=Read-CoordinationTask $context $Id
@@ -158,18 +159,23 @@ try {
     if ($report.outcome -ne 'pass') { $failure="Agent returned $($report.outcome): $($report.summary)" }
 } catch { $failure=$_.Exception.Message }
 
-Invoke-CoordinationLock $context {
+$finalFailure=Invoke-CoordinationLock $context {
     $task=Read-CoordinationTask $context $Id
     if (-not $task.execution -or $task.execution.id -ne $runId) { throw 'Execution lease changed unexpectedly; agent results were not applied.' }
+    if ($Phase -eq 'review' -and -not $failure) {
+        try { if ((Get-CoordinationFreshness $task) -cne $freshness) { $failure='Contract or environment changed during review.' } }
+        catch { $failure='Environment descriptor unavailable or invalid after review.' }
+    }
     $run=[pscustomobject]@{ id=$runId; actor=$Actor; runtime=$Runtime; phase=$Phase; workload=$Workload; role=$role; model=$model.model; effort=$model.effort; passed=($failure -eq ''); failure=$failure; sourceSnapshot=$before.snapshot; artifactDirectory=$artifactDirectory; startedAt=$started; finishedAt=[DateTime]::UtcNow.ToString('o') }
     if ($result) { Set-CoordinationProperty $run 'exitCode' $result.exitCode; Set-CoordinationProperty $run 'timedOut' $result.timedOut }
     if ($Phase -eq 'review' -and $report -and -not $failure) {
-        $task.review=[pscustomobject]@{ actor=$Actor; runtime=$Runtime; verdict='pass'; summary=$report.summary; evidence=@($report.evidence)+@($responsePath); snapshot=$before.snapshot; verification='cli'; runId=$runId; recordedAt=[DateTime]::UtcNow.ToString('o') }
+        $task.review=[pscustomobject]@{ actor=$Actor; runtime=$Runtime; verdict='pass'; summary=$report.summary; evidence=@($report.evidence)+@($responsePath); snapshot=$before.snapshot; freshness=$freshness; verification='cli'; runId=$runId; recordedAt=[DateTime]::UtcNow.ToString('o') }
         $task.stage='review'; $task.status='review'
     }
     $task.runs=@($task.runs)+@($run); $task.artifacts=@($task.artifacts)+@($artifactDirectory); $task.execution=$null
     if ($failure) { $task.status='blocked' }
     Save-CoordinationTask $context $task
+    return $failure
 }
-if ($failure) { throw "$failure Artifacts: $artifactDirectory" }
+if ($finalFailure) { throw "$finalFailure Artifacts: $artifactDirectory" }
 if ($Json) { $report | ConvertTo-Json -Depth 20 } else { Write-Output "$Phase finished via $Runtime ($($model.model)/$($model.effort)). Inspect $responsePath before the next phase. QA/completion remain explicit." }

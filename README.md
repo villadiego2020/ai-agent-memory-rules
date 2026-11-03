@@ -114,3 +114,23 @@ pwsh -NoProfile -File C:\Work\git\ai-agent-memory-rules\scripts\orchestrate.ps1 
 ทดสอบ scripts ด้วย temporary homes/projects, installer lifecycle, manifest safety, WhatIf, Memory validation และ profile contracts จาก `tests/*.ps1` หลักฐานนี้ตรวจ tooling และกติกา ไม่ใช่การทดสอบ gameplay ใน Unity Editor หรือรับรองคุณภาพ agent ทุก model
 
 Released under the [MIT License](LICENSE).
+
+## Verification freshness
+
+Every new `plan` records `-RequirementRevision` (default `1`, 1–128 characters).
+Replan with a new revision when requirements evolve; replan clears prior review/QA.
+Verification receipts also hash goal, acceptance, kind/risk/stack, owned paths and
+plan contents, so edits to the board contract cannot reuse old verification even
+though the board is excluded from the source snapshot.
+
+Optionally supply `plan -EnvironmentFile environment.json`: a project-relative
+JSON descriptor, at most 64 KiB, containing non-secret tool/runtime/session version
+identifiers chosen by the project. Its bytes are fingerprinted at review, QA and
+completion. An ignored descriptor is still checked. Changes during QA fail the
+receipt without counting as a failed implementation attempt. No environment
+variables, credentials, automatic tool probes or remote state are collected.
+Missing/invalid descriptors fail closed; restore or replan before verification.
+A descriptor only detects changes its owner records; this is not a live environment
+monitor. Legacy v2 plans without `requirementRevision` retain source-only behavior
+until explicitly replanned. Both manual review and CLI review produce freshness
+receipts. Identities remain cooperative rather than authenticated.

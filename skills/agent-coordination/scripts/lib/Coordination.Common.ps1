@@ -372,6 +372,7 @@ function Test-CoordinationIndependentReviewRequired {
 
 function Assert-CoordinationCurrentReview {
     param($Task, [string]$Snapshot)
+    if ($Task.review) { Assert-CoordinationFreshReceipt $Task $Task.review }
     if (-not (Test-CoordinationIndependentReviewRequired $Task)) { return }
     if (-not $Task.review -or $Task.review.verdict -ne 'pass' -or $Task.review.snapshot -ne $Snapshot -or $Task.review.actor -in @($Task.implementationParticipants)) { throw 'A passing independent review of the current source snapshot is required.' }
 }
@@ -397,4 +398,33 @@ function Clear-CoordinationGates {
 function New-CoordinationLease {
     param([string]$Actor, [string]$Phase, [string]$Id)
     [pscustomobject]@{ id=$Id; actor=$Actor; phase=$Phase; pid=$PID; processStartedAt=(Get-Process -Id $PID).StartTime.ToUniversalTime().ToString('o'); startedAt=[DateTime]::UtcNow.ToString('o') }
+}
+
+function Get-CoordinationFreshness {
+    param($Task)
+    if (-not $Task.plan -or -not $Task.plan.PSObject.Properties['requirementRevision']) { return '' }
+    if ($Task.plan.requirementRevision -isnot [string] -or [string]::IsNullOrWhiteSpace($Task.plan.requirementRevision) -or $Task.plan.requirementRevision.Length -gt 128) { throw 'Invalid requirementRevision (1-128 characters required).' }
+    if (-not $Task.plan.PSObject.Properties['environmentFile'] -or $Task.plan.environmentFile -isnot [string]) { throw 'Invalid environmentFile.' }
+    $environment='none'
+    if ($Task.plan.environmentFile) {
+        $path=Join-Path $Task.worktree (ConvertTo-CoordinationScope $Task.plan.environmentFile)
+        Assert-CoordinationPath $path
+        $item=Get-Item -LiteralPath $path -ErrorAction Stop
+        if ($item.PSIsContainer -or $item.Length -gt 65536) { throw 'Environment descriptor must be a JSON file no larger than 64 KiB.' }
+        $null=[IO.File]::ReadAllText($path) | ConvertFrom-Json
+        $environment=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+    }
+    $contract=[ordered]@{ goal=$Task.goal; acceptance=@($Task.acceptance); kind=$Task.kind; risk=$Task.risk; stack=$Task.stack; ownedFiles=@($Task.ownedFiles); plan=$Task.plan; environment=$environment }
+    # Windows PowerShell escapes these raw JSON string characters by default;
+    # PS7 does not. Normalize raw characters only, preserving literal backslash-u.
+    $canonical=($contract | ConvertTo-Json -Depth 40 -Compress).Replace('<','\u003c').Replace('>','\u003e').Replace('&','\u0026').Replace("'",'\u0027')
+    $algorithm=[Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($algorithm.ComputeHash($script:CoordinationEncoding.GetBytes($canonical)))).Replace('-','').ToLowerInvariant() }
+    finally { $algorithm.Dispose() }
+}
+
+function Assert-CoordinationFreshReceipt {
+    param($Task, $Receipt)
+    $current=Get-CoordinationFreshness $Task
+    if ($current -and (-not $Receipt -or -not $Receipt.PSObject.Properties['freshness'] -or $Receipt.freshness -cne $current)) { throw 'Verification is stale: requirement contract or environment changed. Re-review and rerun QA.' }
 }
