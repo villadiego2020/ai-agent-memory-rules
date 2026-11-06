@@ -134,3 +134,98 @@ A descriptor only detects changes its owner records; this is not a live environm
 monitor. Legacy v2 plans without `requirementRevision` retain source-only behavior
 until explicitly replanned. Both manual review and CLI review produce freshness
 receipts. Identities remain cooperative rather than authenticated.
+
+## Optional offline evaluation (Experiment 1)
+
+`scripts/evaluate-offline.ps1` normalizes a supplied synthetic evidence manifest;
+it never runs an evaluator, model CLI, provider API, or commands from that file.
+It is a standalone instrument, with no changes to live QA gates, manual checks,
+model routing, or the two-failure recovery rule. Run it on either PowerShell 5.1
+or 7:
+
+```powershell
+pwsh -NoProfile -File scripts/evaluate-offline.ps1 -InputPath evidence.json -OutputPath report.json
+```
+
+The explicit v1 input contract is JSON (UTF-8, optional BOM), for example:
+
+```json
+{
+  "schemaVersion": 1,
+  "evaluator": { "id": "synthetic-tests", "version": "1" },
+  "fixture": { "id": "example", "version": "1" },
+  "expectedRuns": [
+    { "runId": "case-1", "result": {
+      "status": "completed", "outcome": "pass",
+      "passed": 1, "failed": 0, "skipped": 0
+    } }
+  ],
+  "usage": [
+    { "callId": "global-call-1", "parentCallId": null,
+      "runtime": "synthetic", "requestedModel": "requested-id",
+      "observedModel": "observed-id", "observationSource": "fixture-receipt",
+      "inputTokens": 100, "outputTokens": 20,
+      "cacheReadTokens": 0, "cacheWriteTokens": 0 }
+  ]
+}
+```
+
+Each expected run contains its result inline; an omitted/null result is `missing`.
+Run IDs are nonblank, unique, case-sensitive strings. Completed results require
+all three nonnegative integer counts and a consistent `pass`/`fail` outcome:
+any failed tests require `fail`; no failed tests require `pass`. Zero executed
+tests (including skipped-only results) are `ungraded`. Other result statuses are
+`timedOut`, `cancelled`, and `skipped`; malformed results classify `invalid`.
+Every expected run receives exactly one terminal class. The denominator exposes
+all classes and reconciles `expected = graded + ungraded + infrastructureFailed
++ cancelled`; missing, invalid and timed-out results are infrastructure failures,
+and skipped evaluators remain ungraded rather than quality passes/failures.
+
+Usage observations are manifest-level **exclusive per-call** counters, not
+inclusive parent-span counters. Supply a globally scoped logical/provider call
+identity as `callId`; repeat the same identity only for observations of that same
+call. Equal normalized observations count once; distinct calls, including genuine
+nested child calls, count separately. Parent IDs must resolve, with no cycles.
+Conflicting observations of an identity expose a conflicted call, suppress its
+canonical evidence, and make authoritative totals unknown; no observation wins.
+The script cannot infer genuine call identity or translate provider envelopes.
+
+Every numeric token in the input must use a canonical unsigned integer literal
+from 0 through 9007199254740991 (`0` or digits starting with `1`–`9`). Decimal,
+exponent, negative and leading-zero spellings are rejected before parsing,
+including in extra fields. Token metrics may also be omitted/null; strings and
+booleans are rejected. This avoids host-dependent rounding and underflow.
+Cache reads and writes remain separate and are never added to input/output tokens.
+Missing metrics/calls produce null authoritative totals, with `knownCalls`,
+`expectedCalls` and a labelled decimal-string `knownSubtotal` for partial evidence.
+If an otherwise complete aggregate exceeds the safe JSON integer range, its
+numeric total is null with `status: "overflow"` and decimal-string `exactTotal`.
+Missing usage is unknown, never a measured zero. Requested model identity is
+distinct from observed identity; `observedModel` requires `observationSource`.
+Without observed identity attribution is `unavailable`. Sources are supplied
+evidence labels, not authenticated provider claims.
+
+Reports retain evaluator/fixture identity and version, normalizer version, exact
+raw byte count and SHA256 (including any BOM). Replay does not rewrite the trace.
+Input defaults to a 4 MiB byte limit (`-MaxBytes`, maximum 16 MiB); each manifest
+supports at most 4096 runs and 4096 usage observations, with at most 64 nesting
+levels. Duplicate object property names (including case variants and escaped
+equivalents) are rejected before parsing. Identity containers and run/call entries
+must be objects; status/outcome and text fields must be scalar strings.
+Structural/usage errors reject the manifest. Extra fields are ignored semantically
+but still follow these lexical rules. Use this normalized contract rather than
+passing an arbitrary provider response.
+
+Exit **0** means every expected run passed and all usage metrics and observed
+model attribution are complete. Exit **2** still emits a full JSON report, with
+`certificationStatus: "incomplete"` and reasons, when evaluation is non-pass or
+telemetry is incomplete/conflicted/overflowed. Malformed input and output errors
+exit **1**. This is evidence completeness, not certification of agent quality.
+The optional output must be a new file in an existing directory; same-directory
+staging and a non-overwriting move preserve existing files and prevent a partial
+destination. Omitting `-OutputPath` writes JSON only to standard output.
+
+`tests/offline-evaluation.ps1` supplies twelve independent literal-oracle canaries
+plus adversarial boundary checks on both hosts through the existing test runner.
+They measure the offline instrument, not live provider permissions, agent quality,
+or a speed/token improvement.
