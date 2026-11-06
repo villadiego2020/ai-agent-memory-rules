@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 2,
+  "id": "T-000003",
+  "title": "PROJ-012 offline canaries and usage provenance",
+  "goal": "Validate offline evaluator instruments and usage evidence without changing live workflow behavior",
+  "acceptance": [
+    "Offline evaluator and twelve independent core canaries classify all expected runs correctly on PowerShell 5.1 and 7 without model calls or dependencies",
+    "Usage provenance deduplicates genuine calls, preserves unknown values and detects conflicts with immutable versioned raw evidence",
+    "Existing regression suites pass on both hosts while rules routing adapters and QA semantics remain unchanged"
+  ],
+  "risk": "medium",
+  "kind": "feature",
+  "playbook": "feature",
+  "stack": "tooling",
+  "runtime": "codex",
+  "status": "complete",
+  "stage": "complete",
+  "owner": "codex:offline-lead",
+  "pendingOwner": null,
+  "worktree": "C:\\Work\\git\\ai-agent-memory-rules",
+  "ownedFiles": [
+    "README.md",
+    "scripts/evaluate-offline.ps1",
+    "scripts/lib/OfflineEvaluation.ps1",
+    "tests/offline-evaluation.ps1"
+  ],
+  "implementationParticipants": [
+    "codex:offline-lead"
+  ],
+  "handoffs": [],
+  "artifacts": [
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\09bf5dd0ffa944219e90c9870bb19802/qa.json",
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\5d131054eef041e7999dbfa7ac928bf9/qa.json",
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\abe255f0fded41baaeebfd3b097087d0/qa.json",
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\9a5de754ed1449bb83e56e9dca93d501/qa.json",
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\7e13f8f721cc4f5a877c89a10547af15/qa.json"
+  ],
+  "runs": [],
+  "plan": {
+    "summary": "Compose actual passing16-script PS7 receipt with remaining full PS5.1 run on identical frozen source hashes after wrapper-only array binding fix",
+    "evidence": [
+      ".agent-coordination/artifacts/T-000003/passed-pwsh-check.json"
+    ],
+    "checks": [
+      {
+        "name": "full-winps",
+        "executable": "powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          ".agent-coordination/artifacts/T-000003/run-regression.ps1"
+        ],
+        "workingDirectory": ".",
+        "timeoutSeconds": 900
+      }
+    ],
+    "noChecksReason": "",
+    "requireRuntimeEvidence": true,
+    "recordedAt": "2026-11-06T00:08:44.7498922Z",
+    "requirementRevision": "1",
+    "environmentFile": "",
+    "readiness": {
+      "schemaVersion": 1,
+      "kind": "feature",
+      "requirements": [
+        "Classify offline evaluator evidence with independent canaries on PowerShell 5.1 and 7",
+        "Normalize explicit call identities and usage provenance without fabricating missing telemetry",
+        "Preserve existing rules routing adapters and QA semantics with no model calls or dependency installation"
+      ],
+      "design": {
+        "ownership": "Standalone scripts/evaluate-offline.ps1 and scripts/lib/OfflineEvaluation.ps1 own optional offline evaluation; existing live coordination remains unchanged",
+        "data": "Bounded UTF-8 JSON input contains unique expected run IDs, structured evaluator results, globally scoped call observations, and fixture/evaluator identity/version; raw preflight rejects decoded duplicate keys and numeric lexemes other than canonical unsigned integers within the safe JSON range before host parsing; output has exact raw-byte hash",
+        "interfaces": "CLI reads explicit input and emits JSON; optional output uses CreateNew and never overwrites input or an existing report; pure library is exercised by independent literal expected-value tests",
+        "states": "Each expected run has exactly one terminal pass/fail/ungraded/invalid/missing/timeout/cancelled/skipped classification; usage is known, unknown or conflicted with partial totals labelled separately",
+        "failureHandling": "Reject ambiguous numeric representations and decoded case-equivalent duplicate keys anywhere including ignored fields, bound nesting to 64 before host parsing, enforce explicit scalar/object types, and reject structural errors before output; classify declared result failures and keep incomplete evidence distinct from success",
+        "compatibility": "Use built-in PowerShell 5.1-compatible APIs; add one auto-discovered test script; do not alter existing adapters task schemas QA failure counters generic checks manual QA or model policy",
+        "nonGoals": "No live model/provider calls, inferred provider envelope parsers, dependency installation, rules/routing changes, automatic workflow adoption, global installation or Git publication; the unpublished v1 contract does not support decimal/exponent/negative numeric literals even in ignored fields"
+      },
+      "acceptanceMapping": [
+        {
+          "acceptance": "Offline evaluator and twelve independent core canaries classify all expected runs correctly on PowerShell 5.1 and 7 without model calls or dependencies",
+          "verification": "Focused tests with twelve independent literal expected-value canaries plus verifier-owned public CLI probes on both hosts"
+        },
+        {
+          "acceptance": "Usage provenance deduplicates genuine calls, preserves unknown values and detects conflicts with immutable versioned raw evidence",
+          "verification": "Independent duplicate100/distinct200/nested200/unknown/conflict controls, attribution/parent validation, raw-byte hash and version drift assertions, and input/output preservation probes"
+        },
+        {
+          "acceptance": "Existing regression suites pass on both hosts while rules routing adapters and QA semantics remain unchanged",
+          "verification": "Full scripts/test.ps1 on PowerShell 7 and 5.1; independent diff review confirms scope; final project Memory validator"
+        }
+      ],
+      "newEvidence": [
+        "Independent final CLI verification passes 55 cases per host after raw-lexeme and scalar/container correction; all110 raw inputs and report fingerprints are unchanged and final code hashes match",
+        "First full QA failed because runtime default TEMP denies Git config writes and atomic rename; a controlled task-owned visualization directory permits both operations without any source changes",
+        "Second full QA exposes Windows restricted junction and MSYS named-object failures plus excessive Git worktree path length; repository validator also scans retained ignored task diagnostic logs for personal paths; these are concrete execution-context causes rather than new offline evaluator defects",
+        "Prepared a clean source export of118 delivered candidate files with matching SHA256 and no task board/logs; final both-host execution will verify export/source hashes before each run and use a shorter exclusively task-owned temporary root without changing existing regression scripts",
+        "The elevated clean-export PowerShell7 full run passed all16 test scripts and repository validation with current frozen candidate hashes; its immutable check receipt will be composed with the remaining PowerShell5.1 run rather than repeating unchanged passed tests",
+        "PowerShell5.1 runner wrapper stopped before tests because @(...ConvertFrom-Json) wrapped the manifest array as one pipeline object; direct typed object-array assignment fixes only test orchestration, and both-host118-entry hash probes will verify this before the remaining full run"
+      ]
+    }
+  },
+  "review": {
+    "actor": "codex:offline-verifier",
+    "runtime": "codex",
+    "verdict": "pass",
+    "summary": "Both-host typed118-record source/export probes pass; actual16-script PS7 receipt verified unchanged; only full PS5.1 remains",
+    "evidence": [
+      ".agent-coordination/artifacts/T-000003/passed-pwsh-check.json",
+      ".agent-coordination/artifacts/T-000003/independent-results.json"
+    ],
+    "snapshot": "7a79d7188d00227e61af2b7709e1e1b2536c9e4e31bff38d954c8219aa438b40",
+    "freshness": "df14fcc273527dc89f881653a3c12f882fd3dcefed1491e571efcee25c881248",
+    "verification": "manual-attestation",
+    "recordedAt": "2026-11-06T00:09:57.3563952Z"
+  },
+  "qa": {
+    "snapshot": "7a79d7188d00227e61af2b7709e1e1b2536c9e4e31bff38d954c8219aa438b40",
+    "freshness": "df14fcc273527dc89f881653a3c12f882fd3dcefed1491e571efcee25c881248",
+    "passed": true,
+    "checks": [
+      {
+        "name": "full-winps",
+        "executable": "powershell.exe",
+        "arguments": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          ".agent-coordination/artifacts/T-000003/run-regression.ps1"
+        ],
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 235707,
+        "workingDirectory": "C:\\Work\\git\\ai-agent-memory-rules",
+        "stdout": "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\7e13f8f721cc4f5a877c89a10547af15\\full-winps.stdout.log",
+        "stderr": "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000003\\7e13f8f721cc4f5a877c89a10547af15\\full-winps.stderr.log"
+      }
+    ],
+    "manualSummary": "Only remaining full PS5.1 regression; existing PS7 review matches identical118-file source; PS5child uses native installed modules process-only; preserved actual PS7fullpass composed",
+    "manualEvidence": [
+      ".agent-coordination/artifacts/T-000003/passed-pwsh-check.json",
+      ".agent-coordination/artifacts/T-000003/independent-results.json"
+    ],
+    "failure": "",
+    "recordedAt": "2026-11-06T00:19:58.8937889Z"
+  },
+  "execution": null,
+  "createdAt": "2026-11-05T23:32:58.2537048Z",
+  "updatedAt": "2026-11-06T00:21:11.0929414Z",
+  "hardProblem": "",
+  "baseRevision": "36be6ddb0b235262a895249a100cc154f44f5bff",
+  "investigationEvidence": [
+    ".agent-coordination/artifacts/t-000003/independent-results.json",
+    ".agent-coordination/artifacts/t-000003/passed-pwsh-check.json",
+    ".agent-memory/work/proj-012.md",
+    "first full qa failed because runtime default temp denies git config writes and atomic rename; a controlled task-owned visualization directory permits both operations without any source changes",
+    "independent final cli verification passes 55 cases per host after raw-lexeme and scalar/container correction; all110 raw inputs and report fingerprints are unchanged and final code hashes match",
+    "independent raw cli fixtures confirm array status and singleton-array run/evaluator containers falsely certify complete via powershell member enumeration and array comparisons; duplicate json keys silently overwrite evidence before normalization",
+    "independent raw cli fixtures on both powershell hosts confirm inputtokens 1e-999 becomes zero and falsely certifies complete; powershell 7 additionally rounds 9007199254740990.5 and 1.00000000000000000001 before numeric validation, proving host parsing loses numeric lexemes",
+    "powershell5.1 runner wrapper stopped before tests because @(...convertfrom-json) wrapped the manifest array as one pipeline object; direct typed object-array assignment fixes only test orchestration, and both-host118-entry hash probes will verify this before the remaining full run",
+    "prepared a clean source export of118 delivered candidate files with matching sha256 and no task board/logs; final both-host execution will verify export/source hashes before each run and use a shorter exclusively task-owned temporary root without changing existing regression scripts",
+    "repository validation identified forbidden recursive test cleanup; corrected test cleanup now verifies generated ownership and absolute boundaries then removes only enumerated files and the empty directory; both-host focused checks and validators pass",
+    "second full qa exposes windows restricted junction and msys named-object failures plus excessive git worktree path length; repository validator also scans retained ignored task diagnostic logs for personal paths; these are concrete execution-context causes rather than new offline evaluator defects",
+    "the elevated clean-export powershell7 full run passed all16 test scripts and repository validation with current frozen candidate hashes; its immutable check receipt will be composed with the remaining powershell5.1 run rather than repeating unchanged passed tests"
+  ],
+  "validationFailures": [],
+  "completion": {
+    "summary": "Offline12core canaries and110 independent cases passed; actual16-script full suites passed both hosts on matching118-file candidate; raw logs retained byte-for-byte via relocation map",
+    "evidence": [
+      ".agent-coordination/artifacts/T-000003/independent-results.json",
+      ".agent-coordination/artifacts/T-000003/passed-pwsh-check.json",
+      ".agent-coordination/artifacts/T-000003/retained-log-map.json"
+    ],
+    "actor": "codex:offline-lead",
+    "recordedAt": "2026-11-06T00:21:11.0839119Z"
+  }
+}

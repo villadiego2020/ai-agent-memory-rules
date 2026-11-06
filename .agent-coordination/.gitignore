@@ -1,0 +1,6 @@
+
+.lock
+*.tmp
+*.bak
+artifacts/
+worktrees/

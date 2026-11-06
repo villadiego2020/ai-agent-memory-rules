@@ -1,0 +1,1 @@
+Shared execution board for every worktree of this repository. Load the installed agent-coordination skill. Task identities use runtime:session. Durable facts remain in each branch's .agent-memory. Artifacts are local and may contain private output; share selected evidence deliberately.

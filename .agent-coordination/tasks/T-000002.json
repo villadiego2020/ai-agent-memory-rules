@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "id": "T-000002",
+  "title": "PROJ-011 repair rejected GitHub Actions workflow",
+  "goal": "Both Windows PowerShell CI jobs run and pass on GitHub",
+  "acceptance": [
+    "GitHub accepts workflow and both independent PowerShell jobs pass the unchanged full test runner"
+  ],
+  "risk": "medium",
+  "kind": "bugfix",
+  "playbook": "bugfix",
+  "stack": "tooling",
+  "runtime": "codex",
+  "status": "complete",
+  "stage": "complete",
+  "owner": "codex:ci_fix",
+  "pendingOwner": null,
+  "worktree": "C:\\Work\\git\\ai-agent-memory-rules",
+  "ownedFiles": [
+    ".github/workflows/validate.yml"
+  ],
+  "implementationParticipants": [
+    "codex:ci_fix"
+  ],
+  "handoffs": [],
+  "artifacts": [
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000002\\507f71758cbf4d14859b8e5842b0cb84/qa.json"
+  ],
+  "runs": [],
+  "plan": {
+    "summary": "Confirmed startup validation error; literal wrapper preserves matrix host coverage and exit propagation",
+    "evidence": [
+      "https://github.com/villadiego2020/ai-agent-memory-rules/actions/runs/41588582461"
+    ],
+    "checks": [],
+    "noChecksReason": "Independent focused launch probes and actual GitHub job outcomes are recorded before completion",
+    "requireRuntimeEvidence": false,
+    "recordedAt": "2026-11-03T06:20:47.3664153Z",
+    "requirementRevision": "1",
+    "environmentFile": "",
+    "readiness": {
+      "schemaVersion": 1,
+      "kind": "bugfix",
+      "expected": "GitHub creates independent Windows PowerShell 7 and 5.1 jobs running the full test runner",
+      "actual": "Run41588582461 fails at zero seconds before jobs exist",
+      "reproductionEvidence": [
+        "Public run41588582461 annotation rejects line17 matrix.shell; jobs and check runs empty"
+      ],
+      "causeStatus": "confirmed",
+      "confirmedCause": "GitHub expression validation rejects matrix context in the step shell field",
+      "causeEvidence": [
+        "Run41588582461 annotation: Line17 Col16 Unrecognized named-value matrix in matrix.shell",
+        "Actions enabled and allow all actions, excluding action-policy rejection"
+      ],
+      "minimalChange": "Use literal pwsh wrapper and pass hardcoded matrix host via step environment, launch selected executable and explicitly propagate exit code",
+      "impact": "Only CI launch syntax; both-host matrix and test runner unchanged",
+      "regressionChecks": [
+        {
+          "verification": "Inspect real GitHub Actions run after authorized commit/push",
+          "scenario": "Workflow compiles and creates both matrix jobs"
+        },
+        {
+          "verification": "Focused independent local wrapper probes plus both real CI job results",
+          "scenario": "Each selected host invokes full tests and failure exits propagate"
+        }
+      ],
+      "acceptanceMapping": [
+        {
+          "acceptance": "GitHub accepts workflow and both independent PowerShell jobs pass the unchanged full test runner",
+          "verification": "Independent shell/failure probes then GitHub completed success for both jobs on final revision"
+        }
+      ]
+    }
+  },
+  "review": {
+    "actor": "codex:verify_phase01",
+    "runtime": "codex",
+    "verdict": "pass",
+    "summary": "Independent selected-host and exit-code probes passed; latest GitHub revision passes both unchanged full test jobs",
+    "evidence": [
+      "https://github.com/villadiego2020/ai-agent-memory-rules/actions/runs/41590369887",
+      ".agent-memory/archive/PROJ-011.md"
+    ],
+    "snapshot": "a1a31974e8f72248aa96771e4abd05da1a4e019ecf5fd3e0def549fb341c24e2",
+    "freshness": "eb949014e2191bc3d90a601ef1cabcfe7deeb4b55615307f1131493809d6bd23",
+    "verification": "manual-attestation",
+    "recordedAt": "2026-11-03T06:37:59.7696973Z"
+  },
+  "qa": {
+    "snapshot": "a1a31974e8f72248aa96771e4abd05da1a4e019ecf5fd3e0def549fb341c24e2",
+    "freshness": "eb949014e2191bc3d90a601ef1cabcfe7deeb4b55615307f1131493809d6bd23",
+    "passed": true,
+    "checks": [],
+    "manualSummary": "GitHub final revision36be6dd: both matrix jobs success and each log reports15 scripts plus repository validation passed",
+    "manualEvidence": [
+      "https://github.com/villadiego2020/ai-agent-memory-rules/actions/runs/41590369887"
+    ],
+    "failure": "",
+    "recordedAt": "2026-11-03T06:38:05.5237468Z"
+  },
+  "execution": null,
+  "createdAt": "2026-11-03T06:20:06.4918331Z",
+  "updatedAt": "2026-11-03T06:38:08.4190103Z",
+  "hardProblem": "",
+  "baseRevision": "6d63347b3e61416a0e1b71b59853e96afe27bdec",
+  "investigationEvidence": [
+    "actions enabled and allow all actions, excluding action-policy rejection",
+    "https://github.com/villadiego2020/ai-agent-memory-rules/actions/runs/41588582461",
+    "public run41588582461 annotation rejects line17 matrix.shell; jobs and check runs empty",
+    "run41588582461 annotation: line17 col16 unrecognized named-value matrix in matrix.shell"
+  ],
+  "completion": {
+    "summary": "Confirmed workflow startup cause fixed; independent local probes and final hosted matrix success; separate Bug/Memory commits pushed",
+    "evidence": [
+      "https://github.com/villadiego2020/ai-agent-memory-rules/actions/runs/41590369887"
+    ],
+    "actor": "codex:ci_fix",
+    "recordedAt": "2026-11-03T06:38:08.4133124Z"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "feature",
+  "requirements": [
+    "Bind review and QA to the current contract and explicitly declared environment",
+    "Keep legacy tasks readable and both adapters compatible"
+  ],
+  "design": {
+    "ownership": "Common library owns freshness; board and orchestration call it",
+    "data": "Optional plan revision/environment descriptor and hashed receipt",
+    "interfaces": "plan accepts RequirementRevision and EnvironmentFile; gates compare current digest",
+    "states": "planned, verified, stale after relevant drift",
+    "failureHandling": "Reject changed or invalid descriptors and stale receipts without certifying completion",
+    "compatibility": "Legacy plans without freshness retain source-only behavior; PS5.1 parsing uses supported flags",
+    "nonGoals": "No automatic environment collection, global installation, live accounts, adaptive routing or deployment"
+  },
+  "acceptanceMapping": [
+    {
+      "acceptance": "Freshness and compatibility regressions pass on both PowerShell hosts",
+      "verification": "Focused drift/legacy/adversarial checks and full suites on PS7 and PS5.1, followed by independent review"
+    }
+  ],
+  "newEvidence": [
+    "Cross-host causal probe: PS5.1 JSON escapes raw HTML characters while PS7 emits them; same special-character goal produces different freshness hashes. Normalize only actual raw HTML characters in compressed JSON, preserving literal backslash-u sequences; verify Unicode and nested round trips."
+  ]
+}

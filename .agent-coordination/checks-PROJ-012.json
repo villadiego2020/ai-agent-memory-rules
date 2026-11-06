@@ -1,0 +1,15 @@
+[
+  {
+    "name": "full-winps",
+    "executable": "powershell.exe",
+    "arguments": [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      ".agent-coordination/artifacts/T-000003/run-regression.ps1"
+    ],
+    "workingDirectory": ".",
+    "timeoutSeconds": 900
+  }
+]

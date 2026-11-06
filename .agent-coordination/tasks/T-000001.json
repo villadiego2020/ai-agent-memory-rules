@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "id": "T-000001",
+  "title": "PROJ-010 evidence freshness",
+  "goal": "Reject stale requirement and environment evidence while preserving legacy tasks",
+  "acceptance": [
+    "Freshness and compatibility regressions pass on both PowerShell hosts"
+  ],
+  "risk": "medium",
+  "kind": "feature",
+  "playbook": "feature",
+  "stack": "tooling",
+  "runtime": "codex",
+  "status": "complete",
+  "stage": "complete",
+  "owner": "codex:phase01",
+  "pendingOwner": null,
+  "worktree": "C:\\Work\\git\\ai-agent-memory-rules",
+  "ownedFiles": [
+    "coordination/task.schema.json",
+    "README.md",
+    "skills/agent-coordination",
+    "tests"
+  ],
+  "implementationParticipants": [
+    "codex:phase01"
+  ],
+  "handoffs": [],
+  "artifacts": [
+    "C:\\Work\\git\\ai-agent-memory-rules\\.agent-coordination\\artifacts\\T-000001\\cde8e6cf70b7430ba91ba57304d60d71/qa.json"
+  ],
+  "runs": [],
+  "plan": {
+    "summary": "Fresh investigation confirms host-specific JSON escaping; normalize hash input and verify cross-host special characters",
+    "evidence": [
+      ".agent-coordination/artifacts/freshness-crosshost-493ca02fff754a29b8fdc2fb892f0b8e"
+    ],
+    "checks": [],
+    "noChecksReason": "Independent cross-host regression plus owner affected checks and previously stable unaffected suites",
+    "requireRuntimeEvidence": false,
+    "recordedAt": "2026-11-03T05:55:23.9737225Z",
+    "requirementRevision": "1",
+    "environmentFile": "",
+    "readiness": {
+      "schemaVersion": 1,
+      "kind": "feature",
+      "requirements": [
+        "Bind review and QA to the current contract and explicitly declared environment",
+        "Keep legacy tasks readable and both adapters compatible"
+      ],
+      "design": {
+        "ownership": "Common library owns freshness; board and orchestration call it",
+        "data": "Optional plan revision/environment descriptor and hashed receipt",
+        "interfaces": "plan accepts RequirementRevision and EnvironmentFile; gates compare current digest",
+        "states": "planned, verified, stale after relevant drift",
+        "failureHandling": "Reject changed or invalid descriptors and stale receipts without certifying completion",
+        "compatibility": "Legacy plans without freshness retain source-only behavior; PS5.1 parsing uses supported flags",
+        "nonGoals": "No automatic environment collection, global installation, live accounts, adaptive routing or deployment"
+      },
+      "acceptanceMapping": [
+        {
+          "acceptance": "Freshness and compatibility regressions pass on both PowerShell hosts",
+          "verification": "Focused drift/legacy/adversarial checks and full suites on PS7 and PS5.1, followed by independent review"
+        }
+      ],
+      "newEvidence": [
+        "Cross-host causal probe: PS5.1 JSON escapes raw HTML characters while PS7 emits them; same special-character goal produces different freshness hashes. Normalize only actual raw HTML characters in compressed JSON, preserving literal backslash-u sequences; verify Unicode and nested round trips."
+      ]
+    }
+  },
+  "review": {
+    "actor": "codex:verify_phase01",
+    "runtime": "codex",
+    "verdict": "pass",
+    "summary": "Independent public drift and cross-host regression verification passed; owner final suites composed with current validators",
+    "evidence": [
+      "tests/coordination-freshness-integration.ps1",
+      "tests/coordination-freshness-crosshost.ps1",
+      ".agent-memory/archive/PROJ-010.md"
+    ],
+    "snapshot": "9b56c3897de1e8382d6a89f30d3824b1473a5be053d379c9f401af5cea8fffdf",
+    "freshness": "51d75cdc59f1025184981bc4e87b07b20dda4734de8d25bc9e0e66622009593c",
+    "verification": "manual-attestation",
+    "recordedAt": "2026-11-03T06:01:03.6404747Z"
+  },
+  "qa": {
+    "snapshot": "9b56c3897de1e8382d6a89f30d3824b1473a5be053d379c9f401af5cea8fffdf",
+    "freshness": "51d75cdc59f1025184981bc4e87b07b20dda4734de8d25bc9e0e66622009593c",
+    "passed": true,
+    "checks": [],
+    "manualSummary": "Both-host14-script pass plus current validators, post-canonical unit/integration and cross-host probes passed; aggregate export fixture failure documented",
+    "manualEvidence": [
+      ".agent-memory/archive/PROJ-010.md"
+    ],
+    "failure": "",
+    "recordedAt": "2026-11-03T06:01:10.8013602Z"
+  },
+  "execution": null,
+  "createdAt": "2026-11-03T05:41:54.3716819Z",
+  "updatedAt": "2026-11-03T06:01:14.7457484Z",
+  "hardProblem": "",
+  "baseRevision": "4c0a646dd96b4d497a07e98f5b251db514461d11",
+  "investigationEvidence": [
+    ".agent-coordination/artifacts/freshness-crosshost-493ca02fff754a29b8fdc2fb892f0b8e",
+    ".agent-memory/work/proj-010.md",
+    "cross-host causal probe: ps5.1 json escapes raw html characters while ps7 emits them; same special-character goal produces different freshness hashes. normalize only actual raw html characters in compressed json, preserving literal backslash-u sequences; verify unicode and nested round trips."
+  ],
+  "completion": {
+    "summary": "Phase0–1 implementation and independent focused verification complete with documented test composition",
+    "evidence": [
+      ".agent-memory/archive/PROJ-010.md"
+    ],
+    "actor": "codex:phase01",
+    "recordedAt": "2026-11-03T06:01:14.7398745Z"
+  }
+}
