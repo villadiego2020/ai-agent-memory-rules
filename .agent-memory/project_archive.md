@@ -12,6 +12,8 @@
 
 # FEATURE
 
+- PROJ-012: Added offline evaluator canaries, strict JSON/usage provenance and immutable reports; independent 55-case checks and sixteen-script full regressions passed on PowerShell 5.1/7 without changing live rules or routing. [detail](archive/PROJ-012.md)
+
 - PROJ-010: Added contract/environment evidence freshness, cross-host hash compatibility and independent drift checks; recorded original baseline and composed final both-host verification. [detail](archive/PROJ-010.md)
 
 - PROJ-009: Added evidence-first bugfix/system readiness contracts, acceptance mapping and two-failure QA recovery gates; independently verified and installed for Codex. [detail](archive/PROJ-009.md)
